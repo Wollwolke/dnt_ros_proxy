@@ -1,0 +1,3 @@
+[submodule "src/dtn_proxy/external/cpp-httplib"]
+	path = src/dtn_proxy/external/cpp-httplib
+	url = https://github.com/yhirose/cpp-httplib.git
