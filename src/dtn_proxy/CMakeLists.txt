@@ -5,6 +5,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+add_subdirectory(external/cpp-httplib)
+find_package(httplib REQUIRED)
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 # uncomment the following section in order to fill in
@@ -26,6 +29,7 @@ endif()
 
 add_executable(dtnproxy src/dtnProxy.cpp)
 ament_target_dependencies(dtnproxy rclcpp)
+target_link_libraries(dtnproxy httplib::httplib)
 
 install(TARGETS
   dtnproxy
