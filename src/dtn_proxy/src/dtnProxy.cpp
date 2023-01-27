@@ -1,4 +1,5 @@
 #include <dtnd_client.hpp>
+#include <logger.hpp>
 #include <memory>
 
 #include "rclcpp/rclcpp.hpp"
@@ -10,8 +11,11 @@ private:
 public:
     DtnProxy() : Node("dtn_proxy") {
         dtn = std::make_unique<DtndClient>();
-        dtn->registerEndpoint("bla");
-        RCLCPP_INFO(this->get_logger(), "DtnProxy up.");
+        // dtn->registerEndpoint("bla");
+        RCLCPP_INFO_STREAM(this->get_logger(), "DtnProxy up.");
+        logger::Logger::setLogger(this->get_logger());
+        logger::Debug() << "hi" << 8;
+        // logger::Debug() << "hi" << 8;
     }
 };
 

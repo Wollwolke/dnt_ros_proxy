@@ -3,15 +3,17 @@
 #include <dtnd_client.hpp>
 #include <functional>
 
-using namespace std;
+using std::cout;
+using std::endl;
+using std::string;
 
 DtndClient::DtndClient(string address, uint16_t port) {
-    http = make_unique<httplib::Client>(address, port);
-    ws = make_unique<WsClient>();
+    http = std::make_unique<httplib::Client>(address, port);
+    ws = std::make_unique<WsClient>();
 
-    ws->setOpenHandler(bind(&DtndClient::onOpen, this));
+    ws->setOpenHandler(std::bind(&DtndClient::onOpen, this));
     ws->setBundleHandler(
-        bind(&DtndClient::onBundle, this, std::placeholders::_1));
+        std::bind(&DtndClient::onBundle, this, std::placeholders::_1));
 }
 
 void DtndClient::onOpen() {
@@ -38,8 +40,8 @@ DtndClient::Result DtndClient::getRequest(string path) {
         if (res->status == 200)
             return Result(true, res->body);
         else
-            content = "HTTP return code: "s + to_string(res->status) + " - "s +
-                      res->reason;
+            content = "HTTP return code: "s + std::to_string(res->status) +
+                      " - "s + res->reason;
     } else
         content = "HTTP Client Error: "s + to_string(res.error());
 
