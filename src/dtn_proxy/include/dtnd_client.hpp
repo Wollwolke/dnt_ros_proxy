@@ -1,17 +1,19 @@
 #pragma once
-#include <memory>
 #include <httplib.h>
 
-class DtndClient
-{
+#include <memory>
+#include <ws_client.hpp>
+
+class DtndClient {
 private:
-    typedef struct
-    {
+    typedef struct Result {
         bool success;
         std::string content;
+        Result(bool success, std::string content);
     } Result;
 
     std::unique_ptr<httplib::Client> http;
+    std::unique_ptr<WsClient> ws;
 
     Result getRequest(std::string path);
 
