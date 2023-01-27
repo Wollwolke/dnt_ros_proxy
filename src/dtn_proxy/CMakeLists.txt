@@ -34,7 +34,8 @@ ament_target_dependencies(dtnproxy rclcpp)
 target_link_libraries(dtnproxy httplib::httplib)
 
 target_include_directories(dtnproxy PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp)
 
 install(TARGETS
   dtnproxy
