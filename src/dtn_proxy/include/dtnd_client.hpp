@@ -6,11 +6,11 @@
 
 class DtndClient {
 private:
-    typedef struct Result {
+    using Result = struct Result {
         bool success;
         std::string content;
         Result(bool success, std::string content);
-    } Result;
+    };
 
     std::unique_ptr<httplib::Client> http;
     std::unique_ptr<WsClient> ws;
@@ -19,6 +19,9 @@ private:
 
 public:
     DtndClient(std::string address = "127.0.0.1", uint16_t port = 3000);
+
+    void onOpen();
+    void onBundle(std::string bundle);
 
     bool registerEndpoint(std::string eid);
 };
