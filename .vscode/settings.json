@@ -76,6 +76,9 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "*.ipp": "cpp",
-        "*.txx": "cpp"
-    }
+        "*.txx": "cpp",
+        "coroutine": "cpp",
+        "source_location": "cpp"
+    },
+    "C_Cpp.clang_format_fallbackStyle": "{BasedOnStyle: Google, IndentWidth: 4, AccessModifierOffset: -4}"
 }
