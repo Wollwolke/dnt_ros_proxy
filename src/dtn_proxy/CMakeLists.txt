@@ -37,13 +37,19 @@ target_include_directories(dtnproxy PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/external/cpp-httplib
   ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp)
 
+# Generate C bindings for bp7-rs
+set(CARGO_TARGET_DIR ${CMAKE_CURRENT_BINARY_DIR}/bp7)
+target_include_directories(dtnproxy PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/generated/include/)
+
 include(ExternalProject)
 
 ExternalProject_Add(
   bp7
   DOWNLOAD_COMMAND ""
   CONFIGURE_COMMAND ""
-  BUILD_COMMAND cargo build COMMAND cargo build --release COMMAND cbindgen -c ../../cbindgen.toml -o ${PROJECT_SOURCE_DIR}/include/bp7.hpp
+  BUILD_COMMAND ${CMAKE_COMMAND} -E env CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo build
+  COMMAND ${CMAKE_COMMAND} -E env CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo build --release
+  COMMAND cbindgen -c ../../cbindgen.toml -o ${CMAKE_CURRENT_BINARY_DIR}/generated/include/bp7.hpp
   BINARY_DIR "${PROJECT_SOURCE_DIR}/external/bp7-rs"
   INSTALL_COMMAND ""
   LOG_BUILD ON)
@@ -52,8 +58,8 @@ add_dependencies(dtnproxy bp7)
 
 target_link_libraries(
   dtnproxy
-  debug "${PROJECT_SOURCE_DIR}/external/bp7-rs/target/debug/libbp7.a"
-  optimized "${PROJECT_SOURCE_DIR}/external/bp7-rs/target/release/libbp7.a"
+  debug "${CARGO_TARGET_DIR}/debug/libbp7.a"
+  optimized "${CARGO_TARGET_DIR}/release/libbp7.a"
 )
 
 install(TARGETS
