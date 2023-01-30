@@ -5,9 +5,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-add_subdirectory(external/cpp-httplib)
-find_package(httplib REQUIRED)
-
 # find dependencies
 find_package(ament_cmake REQUIRED)
 
@@ -34,10 +31,10 @@ file(GLOB SOURCES src/*.cpp)
 
 add_executable(dtnproxy ${SOURCES})
 ament_target_dependencies(dtnproxy rclcpp)
-target_link_libraries(dtnproxy httplib::httplib)
 
 target_include_directories(dtnproxy PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/cpp-httplib
   ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp)
 
 install(TARGETS
