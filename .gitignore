@@ -106,3 +106,6 @@ AMENT_IGNORE
 
 # Custom
 !.vscode/c_cpp_properties.json
+
+# Generated using cbindgen from bp7-rs
+bp7.hpp

@@ -37,6 +37,25 @@ target_include_directories(dtnproxy PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/external/cpp-httplib
   ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp)
 
+include(ExternalProject)
+
+ExternalProject_Add(
+  bp7
+  DOWNLOAD_COMMAND ""
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND cargo build COMMAND cargo build --release COMMAND cbindgen -c ../../cbindgen.toml -o ${PROJECT_SOURCE_DIR}/include/bp7.hpp
+  BINARY_DIR "${PROJECT_SOURCE_DIR}/external/bp7-rs"
+  INSTALL_COMMAND ""
+  LOG_BUILD ON)
+
+add_dependencies(dtnproxy bp7)
+
+target_link_libraries(
+  dtnproxy
+  debug "${PROJECT_SOURCE_DIR}/external/bp7-rs/target/debug/libbp7.a"
+  optimized "${PROJECT_SOURCE_DIR}/external/bp7-rs/target/release/libbp7.a"
+)
+
 install(TARGETS
   dtnproxy
   DESTINATION lib/${PROJECT_NAME})

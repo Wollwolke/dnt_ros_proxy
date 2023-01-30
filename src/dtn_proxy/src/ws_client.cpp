@@ -133,7 +133,7 @@ void WsClient::onMessage(websocketpp::connection_hdl, client::message_ptr msg) {
 }
 
 std::ostream& operator<<(std::ostream& out, const WsClient::Metadata& data) {
-    out << "Status:" << data.status << "\t"
+    out << "Status: " << data.status << "\t"
         << "Reason: " << (data.errorReason.empty() ? "N/A" : data.errorReason);
     return out;
 }
