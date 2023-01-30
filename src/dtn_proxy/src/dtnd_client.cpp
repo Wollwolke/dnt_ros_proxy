@@ -3,13 +3,12 @@
 #include <dtnd_client.hpp>
 #include <functional>
 
-using std::cout;
-using std::endl;
 using std::string;
 
-DtndClient::DtndClient(string address, uint16_t port) {
+DtndClient::DtndClient(string address, uint16_t port, std::string loggerName) {
     http = std::make_unique<httplib::Client>(address, port);
-    ws = std::make_unique<WsClient>();
+    ws = std::make_unique<WsClient>(loggerName);
+    log = std::make_unique<Logger>(loggerName, "dtn");
 
     ws->setOpenHandler(std::bind(&DtndClient::onOpen, this));
     ws->setBundleHandler(
@@ -17,19 +16,20 @@ DtndClient::DtndClient(string address, uint16_t port) {
 }
 
 void DtndClient::onOpen() {
+    log->INFO() << "WS Connection to dtnd opened.";
     ws->send("/json");
     ws->send("/subscribe bla");
 }
 
-void DtndClient::onBundle(string bundle) { cout << bundle << endl; }
+void DtndClient::onBundle(string bundle) { log->DBG() << bundle; }
 
 DtndClient::Result::Result(bool success = false, string content = "")
     : success(success), content(content) {}
 
 bool DtndClient::registerEndpoint(string eid) {
     auto result = getRequest("/register?" + eid);
-    cout << result.content << endl;
     ws->connect("ws://localhost:3000/ws");
+    log->DBG() << result.content;
     return result.success;
 }
 

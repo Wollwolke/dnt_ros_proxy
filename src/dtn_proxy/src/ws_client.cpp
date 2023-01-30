@@ -3,9 +3,11 @@
 #include <thread>
 #include <ws_client.hpp>
 
-WsClient::WsClient() {
+WsClient::WsClient(const std::string& loggerName) {
     bundleHandler = [](std::string) {};
     openHandler = [] {};
+
+    log = std::make_unique<Logger>(loggerName, "ws");
 
     metadata.status = Status::UNKNOWN;
 
@@ -37,8 +39,7 @@ bool WsClient::connect(const std::string& uri) {
     client::connection_ptr conReq = endpoint.get_connection(uri, errorCode);
 
     if (errorCode) {
-        std::cout << "> Connect initialization error: " << errorCode.message()
-                  << std::endl;
+        log->ERR() << "Connect initialization error: " << errorCode.message();
         return false;
     }
 
@@ -62,13 +63,12 @@ bool WsClient::connect(const std::string& uri) {
 
 void WsClient::close(websocketpp::close::status::value code) {
     if (metadata.status == Status::OPEN) {
-        std::cout << "> Closing Websocket connection." << std::endl;
+        log->INFO() << "Closing Websocket connection.";
 
         websocketpp::lib::error_code errorCode;
         endpoint.close(metadata.hdl, code, "", errorCode);
         if (errorCode) {
-            std::cout << "> Error initiating close: " << errorCode.message()
-                      << std::endl;
+            log->ERR() << "Error initiating close: " << errorCode.message();
         }
     }
 }
@@ -79,8 +79,7 @@ void WsClient::send(std::string msg) {
     endpoint.send(metadata.hdl, msg, websocketpp::frame::opcode::text,
                   errorCode);
     if (errorCode) {
-        std::cout << "> Error sending message: " << errorCode.message()
-                  << std::endl;
+        log->ERR() << "Error sending message: " << errorCode.message();
         return;
     }
 }
@@ -92,10 +91,9 @@ void WsClient::onOpen(client* c, websocketpp::connection_hdl hdl) {
     (void)c;
     (void)hdl;
     // TODO: check response header
-    // TODO: logging
     // client::connection_ptr con = c->get_con_from_hdl(hdl);
     // server = con->get_response_header("Server");
-    std::cout << metadata << std::endl;
+    log->INFO() << metadata;
 }
 
 void WsClient::onFail(client* c, websocketpp::connection_hdl hdl) {
@@ -103,13 +101,11 @@ void WsClient::onFail(client* c, websocketpp::connection_hdl hdl) {
     metadata.status = Status::FAILED;
     metadata.errorReason = con->get_ec().message();
     // TODO: check response header
-    // TODO: logging
     // server = con->get_response_header("Server");
-    std::cout << metadata << std::endl;
+    log->INFO() << metadata;
 }
 
 void WsClient::onClose(client* c, websocketpp::connection_hdl hdl) {
-    // TODO: logging
     metadata.status = Status::CLOSED;
     client::connection_ptr con = c->get_con_from_hdl(hdl);
     std::stringstream s;
@@ -120,11 +116,10 @@ void WsClient::onClose(client* c, websocketpp::connection_hdl hdl) {
       << websocketpp::close::status::get_string(con->get_local_close_code())
       << "), local reason: " << con->get_local_close_reason();
     metadata.errorReason = s.str();
-    std::cout << metadata << std::endl;
+    log->INFO() << metadata;
 }
 
 void WsClient::onMessage(websocketpp::connection_hdl, client::message_ptr msg) {
-    // TODO: logging
     std::string payload;
     if (msg->get_opcode() == websocketpp::frame::opcode::TEXT) {
         payload = msg->get_payload();
@@ -132,15 +127,14 @@ void WsClient::onMessage(websocketpp::connection_hdl, client::message_ptr msg) {
         payload = msg->get_payload();
         // payload = websocketpp::utility::to_hex(msg->get_payload());
     }
-    std::cout << ">> " << payload << std::endl;
+    log->DBG() << ">> " << payload;
 
     bundleHandler(payload);
 }
 
 std::ostream& operator<<(std::ostream& out, const WsClient::Metadata& data) {
-    out << "> Status: " << data.status << "\n"
-        << "> Reason: "
-        << (data.errorReason.empty() ? "N/A" : data.errorReason);
+    out << "Status:" << data.status << "\t"
+        << "Reason: " << (data.errorReason.empty() ? "N/A" : data.errorReason);
     return out;
 }
 

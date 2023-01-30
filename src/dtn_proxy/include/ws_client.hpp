@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <logger.hpp>
 #include <map>
 #include <memory>
 #include <websocketpp/client.hpp>
@@ -25,8 +26,10 @@ private:
     Metadata metadata;
     std::shared_ptr<websocketpp::lib::thread> thread;
 
+    std::unique_ptr<Logger> log;
+
 public:
-    WsClient();
+    WsClient(const std::string& loggerName = "ws_wrapper");
     ~WsClient();
 
     void setBundleHandler(bundleHandler_t h);

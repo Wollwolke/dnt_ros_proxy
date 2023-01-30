@@ -10,12 +10,9 @@ private:
 
 public:
     DtnProxy() : Node("dtn_proxy") {
-        dtn = std::make_unique<DtndClient>();
-        // dtn->registerEndpoint("bla");
+        dtn = std::make_unique<DtndClient>("127.0.0.1", 3000, "dtn_proxy");
+        dtn->registerEndpoint("bla");
         RCLCPP_INFO_STREAM(this->get_logger(), "DtnProxy up.");
-        logger::Logger::setLogger(this->get_logger());
-        logger::Debug() << "hi" << 8;
-        // logger::Debug() << "hi" << 8;
     }
 };
 
