@@ -36,8 +36,6 @@ add_executable(dtnproxy ${SOURCES})
 ament_target_dependencies(dtnproxy rclcpp)
 target_link_libraries(dtnproxy httplib::httplib)
 
-add_compile_definitions(ROS_LOGGER)
-
 target_include_directories(dtnproxy PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp)
