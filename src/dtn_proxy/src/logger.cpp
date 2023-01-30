@@ -1,7 +1,7 @@
 #include <logger.hpp>
 
-Logger::Logger(const rclcpp::Logger& rosLogger, const std::string& name)
-    : rosLogger(rosLogger), name(name) {}
+Logger::Logger(const std::string& loggerName, const std::string& moduleName)
+    : rosLogger(rclcpp::get_logger(loggerName)), name(moduleName) {}
 Logger::~Logger() {}
 
 Logger::Base::Base(const rclcpp::Logger& rosLogger, const std::string& name)

@@ -56,7 +56,7 @@ private:
     };
 
 public:
-    Logger(const rclcpp::Logger& rosLogger, const std::string& name);
+    Logger(const std::string& loggerName, const std::string& moduleName);
     ~Logger();
 
     Debug DBG() { return Debug(rosLogger, name); }
