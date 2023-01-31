@@ -37,7 +37,13 @@ target_include_directories(dtnproxy PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/external/cpp-httplib
   ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp)
 
-# Generate C bindings for bp7-rs
+# nlohmann json
+set(JSON_Install OFF CACHE INTERNAL "")
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/json)
+target_link_libraries(dtnproxy nlohmann_json::nlohmann_json)
+
+#### Generate C bindings for bp7-rs
 set(CARGO_TARGET_DIR ${CMAKE_CURRENT_BINARY_DIR}/bp7)
 target_include_directories(dtnproxy PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/generated/include/)
 
@@ -61,6 +67,7 @@ target_link_libraries(
   debug "${CARGO_TARGET_DIR}/debug/libbp7.a"
   optimized "${CARGO_TARGET_DIR}/release/libbp7.a"
 )
+#### End Generate C bindings for bp7-rs
 
 install(TARGETS
   dtnproxy

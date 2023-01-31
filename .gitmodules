@@ -7,3 +7,6 @@
 [submodule "src/dtn_proxy/external/bp7-rs"]
 	path = src/dtn_proxy/external/bp7-rs
 	url = https://github.com/dtn7/bp7-rs.git
+[submodule "src/dtn_proxy/external/json"]
+	path = src/dtn_proxy/external/json
+	url = https://github.com/nlohmann/json.git
