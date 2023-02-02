@@ -12,6 +12,8 @@ find_package(ament_cmake REQUIRED)
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rosbag2_cpp REQUIRED)
+find_package(rosidl_typesupport_introspection_cpp REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -30,7 +32,7 @@ endif()
 file(GLOB SOURCES src/*.cpp)
 
 add_executable(dtnproxy ${SOURCES})
-ament_target_dependencies(dtnproxy rclcpp)
+ament_target_dependencies(dtnproxy rclcpp rosbag2_cpp rosidl_typesupport_introspection_cpp)
 
 target_include_directories(dtnproxy PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -43,34 +45,40 @@ set(JSON_BuildTests OFF CACHE INTERNAL "")
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/json)
 target_link_libraries(dtnproxy nlohmann_json::nlohmann_json)
 
-#### Generate C bindings for bp7-rs
-set(CARGO_TARGET_DIR ${CMAKE_CURRENT_BINARY_DIR}/bp7)
-target_include_directories(dtnproxy PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/generated/include/)
+# ### Generate C bindings for bp7-rs
+# set(CARGO_TARGET_DIR ${CMAKE_CURRENT_BINARY_DIR}/bp7)
+# target_include_directories(dtnproxy PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/generated/include/)
 
-include(ExternalProject)
+# include(ExternalProject)
 
-ExternalProject_Add(
-  bp7
-  DOWNLOAD_COMMAND ""
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ${CMAKE_COMMAND} -E env CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo build
-  COMMAND ${CMAKE_COMMAND} -E env CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo build --release
-  COMMAND cbindgen -c ../../cbindgen.toml -o ${CMAKE_CURRENT_BINARY_DIR}/generated/include/bp7.hpp
-  BINARY_DIR "${PROJECT_SOURCE_DIR}/external/bp7-rs"
-  INSTALL_COMMAND ""
-  LOG_BUILD ON)
+# ExternalProject_Add(
+#   bp7
+#   DOWNLOAD_COMMAND ""
+#   CONFIGURE_COMMAND ""
+#   BUILD_COMMAND ${CMAKE_COMMAND} -E env CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo build
+#   COMMAND ${CMAKE_COMMAND} -E env CARGO_TARGET_DIR=${CARGO_TARGET_DIR} cargo build --release
+#   COMMAND cbindgen -c ../../cbindgen.toml -o ${CMAKE_CURRENT_BINARY_DIR}/generated/include/bp7.hpp
+#   BINARY_DIR "${PROJECT_SOURCE_DIR}/external/bp7-rs"
+#   INSTALL_COMMAND ""
+#   LOG_BUILD ON)
 
-add_dependencies(dtnproxy bp7)
+# add_dependencies(dtnproxy bp7)
 
-target_link_libraries(
-  dtnproxy
-  debug "${CARGO_TARGET_DIR}/debug/libbp7.a"
-  optimized "${CARGO_TARGET_DIR}/release/libbp7.a"
-)
-#### End Generate C bindings for bp7-rs
+# target_link_libraries(
+#   dtnproxy
+#   debug "${CARGO_TARGET_DIR}/debug/libbp7.a"
+#   optimized "${CARGO_TARGET_DIR}/release/libbp7.a"
+# )
+# ### End Generate C bindings for bp7-rs
 
 install(TARGETS
   dtnproxy
   DESTINATION lib/${PROJECT_NAME})
+
+# Install launch files.
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}/
+)
 
 ament_package()
