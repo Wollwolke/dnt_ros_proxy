@@ -11,6 +11,7 @@ WsClient::WsClient(const std::string& loggerName) {
 
     metadata.status = Status::UNKNOWN;
 
+    // TODO: check ws logging
     // Disable logging
     endpoint.clear_access_channels(websocketpp::log::alevel::all);
     endpoint.clear_error_channels(websocketpp::log::elevel::all);
@@ -46,13 +47,10 @@ bool WsClient::connect(const std::string& uri) {
     metadata.hdl = conReq->get_handle();
     metadata.status = Status::CONNECTING;
 
-    conReq->set_open_handler(
-        std::bind(&WsClient::onOpen, this, &endpoint, std::placeholders::_1));
-    conReq->set_fail_handler(
-        std::bind(&WsClient::onFail, this, &endpoint, std::placeholders::_1));
-    conReq->set_message_handler(std::bind(&WsClient::onMessage, this,
-                                          std::placeholders::_1,
-                                          std::placeholders::_2));
+    conReq->set_open_handler(std::bind(&WsClient::onOpen, this, &endpoint, std::placeholders::_1));
+    conReq->set_fail_handler(std::bind(&WsClient::onFail, this, &endpoint, std::placeholders::_1));
+    conReq->set_message_handler(
+        std::bind(&WsClient::onMessage, this, std::placeholders::_1, std::placeholders::_2));
     conReq->set_close_handler(
         std::bind(&WsClient::onClose, this, &endpoint, std::placeholders::_1));
 
@@ -73,13 +71,23 @@ void WsClient::close(websocketpp::close::status::value code) {
     }
 }
 
-void WsClient::send(std::string msg) {
+void WsClient::send(const std::string& msg) {
     websocketpp::lib::error_code errorCode;
 
-    endpoint.send(metadata.hdl, msg, websocketpp::frame::opcode::text,
-                  errorCode);
+    endpoint.send(metadata.hdl, msg, websocketpp::frame::opcode::TEXT, errorCode);
     if (errorCode) {
         log->ERR() << "Error sending message: " << errorCode.message();
+        return;
+    }
+}
+
+void WsClient::send(const std::vector<uint8_t>& msg) {
+    websocketpp::lib::error_code errorCode;
+
+    endpoint.send(metadata.hdl, &msg.front(), msg.size(), websocketpp::frame::opcode::BINARY,
+                  errorCode);
+    if (errorCode) {
+        log->ERR() << "Error sending binary message: " << errorCode.message();
         return;
     }
 }
@@ -120,16 +128,16 @@ void WsClient::onClose(client* c, websocketpp::connection_hdl hdl) {
 }
 
 void WsClient::onMessage(websocketpp::connection_hdl, client::message_ptr msg) {
-    std::string payload;
-    if (msg->get_opcode() == websocketpp::frame::opcode::TEXT) {
-        payload = msg->get_payload();
-    } else {
-        payload = msg->get_payload();
-        // payload = websocketpp::utility::to_hex(msg->get_payload());
-    }
-    log->DBG() << ">> " << payload;
+    std::string payload = msg->get_payload();
 
-    bundleHandler(payload);
+    // TODO: don't rely on msg type to check for data
+    if (msg->get_opcode() == websocketpp::frame::opcode::BINARY) {
+        bundleHandler(payload);
+        log->DBG() << ">> " << websocketpp::utility::to_hex(payload);
+    } else {
+        // Response to command
+        log->DBG() << ">> " << payload;
+    }
 }
 
 std::ostream& operator<<(std::ostream& out, const WsClient::Metadata& data) {

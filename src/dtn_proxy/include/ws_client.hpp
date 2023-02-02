@@ -1,7 +1,6 @@
 #pragma once
 #include <functional>
 #include <logger.hpp>
-#include <map>
 #include <memory>
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
@@ -11,7 +10,7 @@ private:
     enum Status : uint8_t;
 
     using client = websocketpp::client<websocketpp::config::asio_client>;
-    using bundleHandler_t = std::function<void(std::string)>;
+    using bundleHandler_t = std::function<void(const std::string&)>;
     using openHandler_t = std::function<void()>;
 
     using Metadata = struct Metadata {
@@ -37,7 +36,8 @@ public:
 
     bool connect(const std::string& uri);
     void close(websocketpp::close::status::value code);
-    void send(std::string msg);
+    void send(const std::string& msg);
+    void send(const std::vector<uint8_t>& msg);
 
     void onOpen(client* c, websocketpp::connection_hdl hdl);
     void onFail(client* c, websocketpp::connection_hdl hdl);
