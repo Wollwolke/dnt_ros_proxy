@@ -5,37 +5,68 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "ROS Attach",
+            "type": "cppdbg",
+            "request": "attach",
+            "processId": "${input:pid}",
+            "program": "${workspaceFolder}/install/${input:package}/lib/${input:package}/${input:program}",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/install/${input:package}/lib/${input:package}/${input:program}",
             "args": [],
             "preLaunchTask": "debug",
-            "stopAtEntry": true,
+            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
-              {
-                "description": "Enable pretty-printing for gdb",
-                "text": "-enable-pretty-printing",
-                "ignoreFailures": true
-              }
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
             ]
-          }
-        ],
-        "inputs": [
-          {
+        }
+    ],
+    "inputs": [
+        {
             "id": "package",
             "type": "promptString",
             "description": "Package name",
             "default": "dtn_proxy"
-          },
-          {
+        },
+        {
             "id": "program",
             "type": "promptString",
             "description": "Program name",
             "default": "dtnproxy"
-          }
+        },
+        {
+            "id": "pid",
+            "type": "command",
+            "command": "shellCommand.execute",
+            "args": {
+                // TODO: make command generic (doesn't work with inputs)
+                "command": "pgrep '${workspaceFolder}/install/dtn_proxy/lib/dtn_proxy/dtnproxy' -f",
+                "description": "Select your PID",
+                "useFirstResult": true,
+            }
+        }
     ]
 }

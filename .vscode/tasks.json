@@ -14,7 +14,9 @@
                     "BUILD_TYPE": "RelWithDebInfo"
                 },
                 "shell": {
-                    "args": ["-i"]
+                    "args": [
+                        "-i"
+                    ]
                 }
             },
             "group": {
@@ -41,11 +43,36 @@
                     "BUILD_TYPE": "Debug"
                 },
                 "shell": {
-                    "args": ["-i"]
+                    "args": [
+                        "-i"
+                    ]
                 }
             },
             "group": "build",
             "problemMatcher": "$gcc"
+        },
+        // Run
+        {
+            "label": "roslaunch",
+            "detail": "Launch Node with launchfile",
+            "type": "shell",
+            "command": "source ${workspaceFolder}/install/setup.bash && ros2 launch ${input:package} default_launch.py",
+            "options": {
+                "shell": {
+                    "args": [
+                        "-i"
+                    ]
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "build_launch",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "debug",
+                "roslaunch"
+            ]
         },
         // Test tasks
         {
@@ -55,7 +82,9 @@
             "command": "source install/setup.bash; colcon test; colcon test-result",
             "options": {
                 "shell": {
-                    "args": ["-i"]
+                    "args": [
+                        "-i"
+                    ]
                 }
             },
             "group": {
@@ -71,7 +100,9 @@
             "command": "colcon build --cmake-clean-cache --cmake-target clean",
             "options": {
                 "shell": {
-                    "args": ["-i"]
+                    "args": [
+                        "-i"
+                    ]
                 }
             },
             "problemMatcher": "$gcc"
@@ -263,13 +294,13 @@
             "command": "sudo apt-get update && rosdep update && rosdep install --from-paths src --ignore-src -y",
             "problemMatcher": []
         }
-
     ],
     "inputs": [
         {
-          "id": "package",
-          "type": "promptString",
-          "description": "Package name"
+            "id": "package",
+            "type": "promptString",
+            "description": "Package name",
+            "default": "dtn_proxy"
         }
-      ]
+    ]
 }
