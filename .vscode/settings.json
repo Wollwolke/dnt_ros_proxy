@@ -80,5 +80,6 @@
         "coroutine": "cpp",
         "source_location": "cpp"
     },
-    "C_Cpp.clang_format_fallbackStyle": "{BasedOnStyle: Google, IndentWidth: 4, AccessModifierOffset: -4}"
+    "C_Cpp.clang_format_fallbackStyle": "{BasedOnStyle: Google, ColumnLimit: 100, IndentWidth: 4, AccessModifierOffset: -4}",
+    "python.formatting.provider": "black"
 }
