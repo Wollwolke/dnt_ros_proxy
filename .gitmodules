@@ -10,3 +10,6 @@
 [submodule "src/dtn_proxy/external/json"]
 	path = src/dtn_proxy/external/json
 	url = https://github.com/nlohmann/json.git
+[submodule "src/dtn_proxy/external/toml11"]
+	path = src/dtn_proxy/external/toml11
+	url = https://github.com/ToruNiina/toml11.git

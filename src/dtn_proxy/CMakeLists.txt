@@ -37,6 +37,7 @@ ament_target_dependencies(dtnproxy rclcpp rosbag2_cpp rosidl_typesupport_introsp
 target_include_directories(dtnproxy PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/external/cpp-httplib
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/toml11
   ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp)
 
 # nlohmann json
@@ -78,6 +79,7 @@ install(TARGETS
 # Install launch files.
 install(DIRECTORY
   launch
+  config
   DESTINATION share/${PROJECT_NAME}/
 )
 
