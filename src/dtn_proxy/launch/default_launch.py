@@ -6,9 +6,11 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     # args that can be set from the command line or a default will be used
-    # mode_launch_arg = DeclareLaunchArgument(
-    #     "stationMode", default_value=TextSubstitution(text="false")
-    # )
+    configuration_path_arg = DeclareLaunchArgument(
+        "configurationPath",
+        default_value="",
+        description="Absolute path to the configuration file.",
+    )
     log_lvl_launch_arg = DeclareLaunchArgument(
         "log_level",
         default_value=TextSubstitution(text=str("DEBUG")),
@@ -32,4 +34,6 @@ def generate_launch_description():
         ],
     )
 
-    return LaunchDescription([log_lvl_launch_arg, dtnproxy_node_bot])  # mode_launch_arg
+    return LaunchDescription(
+        [log_lvl_launch_arg, configuration_path_arg, dtnproxy_node_bot]
+    )

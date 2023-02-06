@@ -21,6 +21,8 @@ using RosConfig = struct RosConfig {
 };
 
 using DtnConfig = struct DtnConfig {
+    std::string address;
+    uint16_t port;
     std::string remoteNodeId;
     uint32_t lifetime;
 };

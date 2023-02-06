@@ -1,6 +1,7 @@
 #pragma once
 #include <httplib.h>
 
+#include <configuration.hpp>
 #include <functional>
 #include <logger.hpp>
 #include <memory>
@@ -16,6 +17,8 @@ private:
     };
     using messageHandler_t = std::function<void(const std::vector<uint8_t>&)>;
 
+    const proxyConfig::DtnConfig config;
+
     std::unique_ptr<httplib::Client> http;
     std::unique_ptr<WsClient> ws;
     std::unique_ptr<Logger> log;
@@ -27,8 +30,7 @@ private:
     void getLocalNodeId();
 
 public:
-    DtndClient(std::string address = "127.0.0.1", uint16_t port = 3000,
-               std::string loggerName = "dtn_lib");
+    DtndClient(const proxyConfig::DtnConfig& config, std::string loggerName = "dtn_lib");
 
     void setMessageHandler(messageHandler_t h);
 

@@ -1,4 +1,8 @@
 [dtn]
+#dtnd details
+dtndAddress = "127.0.0.1"
+dtndPort = 3000
+
 # URI with dtn scheme [string]
 remoteNodeId = "dtn://node1"
 

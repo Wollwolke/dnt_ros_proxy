@@ -5,10 +5,11 @@
 
 using std::string;
 
-DtndClient::DtndClient(string address, uint16_t port, std::string loggerName) {
+DtndClient::DtndClient(const proxyConfig::DtnConfig& config, std::string loggerName)
+    : config(config) {
     messageHandler = [](const std::vector<uint8_t>) {};
 
-    http = std::make_unique<httplib::Client>(address, port);
+    http = std::make_unique<httplib::Client>(config.address, config.port);
     ws = std::make_unique<WsClient>(loggerName);
     log = std::make_unique<Logger>(loggerName, "dtn");
 
@@ -47,12 +48,14 @@ bool DtndClient::registerEndpoint(string eid) {
 }
 
 void DtndClient::sendMessage(const std::vector<uint8_t>& payload) {
+    const auto MS_IN_MINUTE = 60 * 1000;
+
     data::Ws2Dtn msg{
-        localNodeId,        // std::string src,
-        "dtn://node1/bla",  // std::string dst,
-        false,              // bool delivery_notification,
-        5 * 60 * 1000,      // uint64_t lifetime,
-        payload,            // std::vector<uint8_t>& data,
+        localNodeId,                     // std::string src,
+        config.remoteNodeId + "/bla",    // std::string dst,
+        false,                           // bool delivery_notification,
+        config.lifetime * MS_IN_MINUTE,  // uint64_t lifetime,
+        payload,                         // std::vector<uint8_t>& data,
     };
     nlohmann::json jsonMsg = msg;
     std::vector<uint8_t> cborMsg = nlohmann::json::to_cbor(jsonMsg);

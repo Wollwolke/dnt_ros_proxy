@@ -1,4 +1,4 @@
-#include <configuration_reader.hpp>
+#include <configuration.hpp>
 #include <iostream>
 
 using namespace proxyConfig;
@@ -38,6 +38,8 @@ DtnConfig ConfigurationReader::initDtnConfig(const toml::value& config, Logger& 
                 throw ConfigException();
             }
             dtnConfig.lifetime = toml::find_or<uint32_t>(dtn, "lifetime", 5);
+            dtnConfig.address = toml::find_or<std::string>(dtn, "dtndAddress", "127.0.0.1");
+            dtnConfig.port = toml::find_or<uint16_t>(dtn, "dtndPort", 3000);
         } catch (const toml::exception& err) {
             log.ERR() << err.what();
             throw ConfigException();

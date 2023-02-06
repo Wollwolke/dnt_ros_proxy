@@ -1,3 +1,4 @@
+#include <configuration.hpp>
 #include <dtnd_client.hpp>
 #include <functional>
 #include <logger.hpp>
@@ -8,15 +9,18 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/serialization.hpp"
 // #include "rcpputils/shared_library.hpp"
+#include "ament_index_cpp/get_package_share_directory.hpp"
 #include "rosbag2_cpp/typesupport_helpers.hpp"
 #include "rosidl_typesupport_introspection_cpp/message_introspection.hpp"
 
+#define PACKAGE_NAME "dtn_proxy"
+
 class DtnProxy : public rclcpp::Node {
 private:
+    proxyConfig::Config config;
+
     std::unique_ptr<DtndClient> dtn;
 
-    std::map<std::string, std::string> subTopics;
-    std::map<std::string, std::string> pubTopics;
     std::map<std::string, std::shared_ptr<rclcpp::GenericSubscription>> subscriber;
     std::map<std::string, std::shared_ptr<rclcpp::GenericPublisher>> publisher;
 
@@ -25,20 +29,34 @@ private:
 
         // Subscribers
         auto cb = std::bind(&DtnProxy::topicCallback, this, std::placeholders::_1);
-        for (auto& [topic, type] : subTopics) {
+        for (auto& [topic, type] : config.ros.subTopics) {
             subscriber.insert_or_assign(topic,
                                         this->create_generic_subscription(topic, type, qos, cb));
         }
 
         // Publisher
-        for (auto& [topic, type] : pubTopics) {
+        for (auto& [topic, type] : config.ros.pubTopics) {
             publisher.insert_or_assign(topic, this->create_generic_publisher(topic, type, qos));
         }
     }
 
     void loadConfig() {
-        subTopics.insert_or_assign("test", "geometry_msgs/msg/PoseStamped");
-        pubTopics.insert_or_assign("echo", "geometry_msgs/msg/PoseStamped");
+        auto packageShareDirectory = ament_index_cpp::get_package_share_directory(PACKAGE_NAME);
+        auto parameterDesc = rcl_interfaces::msg::ParameterDescriptor{};
+        parameterDesc.description = "Absolute path to the configuration file.";
+
+        this->declare_parameter("configurationPath", packageShareDirectory + "/config/node0.toml",
+                                parameterDesc);
+        auto path =
+            this->get_parameter("configurationPath").get_parameter_value().get<std::string>();
+
+        try {
+            config = proxyConfig::ConfigurationReader::readConfigFile(path, this->get_name());
+        } catch (proxyConfig::ConfigException& e) {
+            RCLCPP_FATAL_STREAM(this->get_logger(), e.what());
+            // TODO: how to properly shut down?!?
+            rclcpp::shutdown();
+        }
     }
 
     void topicCallback(std::shared_ptr<rclcpp::SerializedMessage> msg) {
@@ -84,12 +102,12 @@ private:
 
 public:
     DtnProxy() : Node("dtn_proxy") {
-        // TODO: logger as ref not name
-        dtn = std::make_unique<DtndClient>("127.0.0.1", 3000, this->get_name());
+        // TODO: cleanup includes
+        loadConfig();
+        dtn = std::make_unique<DtndClient>(config.dtn, this->get_name());
         dtn->setMessageHandler(std::bind(&DtnProxy::onDtnMessage, this, std::placeholders::_1));
         dtn->registerEndpoint("bla");
 
-        loadConfig();
         initRosInterface();
         RCLCPP_INFO_STREAM(this->get_logger(), "DtnProxy up.");
     }

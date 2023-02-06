@@ -34,6 +34,12 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "externalConsole": false,
+            "environment": [
+                {
+                    "name": "AMENT_PREFIX_PATH",
+                    "value": "${workspaceFolder}/install/${input:package}:/opt/ros/humble"
+                }
+            ],
             "MIMode": "gdb",
             "setupCommands": [
                 {
