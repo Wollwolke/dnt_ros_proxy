@@ -1,9 +1,10 @@
 #pragma once
 
 #include <exception>
-#include <logger.hpp>
 #include <string>
 #include <vector>
+
+#include "logger.hpp"
 
 #define TOML11_NO_ERROR_PREFIX
 #include <toml.hpp>

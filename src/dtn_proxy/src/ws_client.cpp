@@ -1,7 +1,8 @@
+#include "ws_client.hpp"
+
 #include <functional>
 #include <iostream>
 #include <thread>
-#include <ws_client.hpp>
 
 WsClient::WsClient(const std::string& loggerName) {
     bundleHandler = [](std::string) {};

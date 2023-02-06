@@ -1,12 +1,14 @@
 #pragma once
 #include <httplib.h>
 
-#include <configuration.hpp>
 #include <functional>
-#include <logger.hpp>
 #include <memory>
+#include <string>
 #include <vector>
-#include <ws_client.hpp>
+
+#include "configuration.hpp"
+#include "logger.hpp"
+#include "ws_client.hpp"
 
 class DtndClient {
 private:

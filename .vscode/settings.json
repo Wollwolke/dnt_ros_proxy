@@ -78,7 +78,11 @@
         "*.ipp": "cpp",
         "*.txx": "cpp",
         "coroutine": "cpp",
-        "source_location": "cpp"
+        "source_location": "cpp",
+        "csetjmp": "cpp",
+        "charconv": "cpp",
+        "ranges": "cpp",
+        "valarray": "cpp"
     },
     "C_Cpp.clang_format_fallbackStyle": "{BasedOnStyle: Google, ColumnLimit: 100, IndentWidth: 4, AccessModifierOffset: -4}",
     "python.formatting.provider": "black"

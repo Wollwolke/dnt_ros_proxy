@@ -1,7 +1,6 @@
-#include <stdio.h>
+#include "dtnd_client.hpp"
 
-#include <dtnd_client.hpp>
-#include <ws_datatypes.hpp>
+#include "ws_datatypes.hpp"
 
 using std::string;
 
