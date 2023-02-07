@@ -9,7 +9,7 @@ struct CreationTimestamp {
     uint64_t sequenceNumber;
 };
 
-struct Ws2Dtn {
+struct WsSend {
     std::string src;
     std::string dst;
     bool delivery_notification;
@@ -17,7 +17,7 @@ struct Ws2Dtn {
     std::vector<uint8_t> data;
 };
 
-struct Dtn2Ws {
+struct WsReceive {
     std::string bid;
     std::string src;
     std::string dst;
@@ -26,7 +26,7 @@ struct Dtn2Ws {
     std::vector<uint8_t> data;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Ws2Dtn, src, dst, delivery_notification, lifetime, data)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(WsSend, src, dst, delivery_notification, lifetime, data)
 
 inline void from_json(const nlohmann::json& j, CreationTimestamp& obj) {
     auto tmp = j.get<std::array<uint64_t, 2>>();
@@ -34,7 +34,7 @@ inline void from_json(const nlohmann::json& j, CreationTimestamp& obj) {
     obj.sequenceNumber = tmp[1];
 }
 
-inline void from_json(const nlohmann::json& j, Dtn2Ws& obj) {
+inline void from_json(const nlohmann::json& j, WsReceive& obj) {
     j.at("bid").get_to(obj.bid);
     j.at("src").get_to(obj.src);
     j.at("dst").get_to(obj.dst);

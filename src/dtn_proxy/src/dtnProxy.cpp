@@ -1,8 +1,10 @@
+#include <algorithm>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <functional>
 #include <map>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
+#include <string>
 // #include <rclcpp/serialization.hpp>
 // #include <rcpputils/shared_library.hpp>
 // #include <rosbag2_cpp/typesupport_helpers.hpp>
@@ -12,6 +14,7 @@
 #include "configuration.hpp"
 #include "dtnd_client.hpp"
 #include "logger.hpp"
+#include "ws_datatypes.hpp"
 
 #define PACKAGE_NAME "dtn_proxy"
 
@@ -24,20 +27,28 @@ private:
     std::map<std::string, std::shared_ptr<rclcpp::GenericSubscription>> subscriber;
     std::map<std::string, std::shared_ptr<rclcpp::GenericPublisher>> publisher;
 
-    void initRosInterface() {
+    void initPublisher() {
         rclcpp::QoS qos = rclcpp::QoS(10);
 
-        // Subscribers
-        auto cb = std::bind(&DtnProxy::topicCallback, this, std::placeholders::_1);
-        for (auto& [topic, type] : config.ros.subTopics) {
-            subscriber.insert_or_assign(topic,
-                                        this->create_generic_subscription(topic, type, qos, cb));
-        }
-
-        // Publisher
         for (auto& [topic, type] : config.ros.pubTopics) {
             publisher.insert_or_assign(topic, this->create_generic_publisher(topic, type, qos));
         }
+    }
+
+    void initSubscriber() {
+        rclcpp::QoS qos = rclcpp::QoS(10);
+
+        for (auto& [topic, type] : config.ros.subTopics) {
+            auto cb = std::bind(&DtnProxy::topicCallback, this, topic, std::placeholders::_1);
+            subscriber.insert_or_assign(topic,
+                                        this->create_generic_subscription(topic, type, qos, cb));
+        }
+    }
+
+    void fatalShutdown(const std::string& reason) {
+        RCLCPP_FATAL(this->get_logger(), reason.c_str());
+        // TODO: how to properly shut down?!?
+        rclcpp::shutdown();
     }
 
     void loadConfig() {
@@ -45,7 +56,7 @@ private:
         auto parameterDesc = rcl_interfaces::msg::ParameterDescriptor{};
         parameterDesc.description = "Absolute path to the configuration file.";
 
-        this->declare_parameter("configurationPath", packageShareDirectory + "/config/node0.toml",
+        this->declare_parameter("configurationPath", packageShareDirectory + "/config/node0.tomsl",
                                 parameterDesc);
         auto path =
             this->get_parameter("configurationPath").get_parameter_value().get<std::string>();
@@ -53,13 +64,11 @@ private:
         try {
             config = proxyConfig::ConfigurationReader::readConfigFile(path, this->get_name());
         } catch (proxyConfig::ConfigException& e) {
-            RCLCPP_FATAL_STREAM(this->get_logger(), e.what());
-            // TODO: how to properly shut down?!?
-            rclcpp::shutdown();
+            fatalShutdown(e.what());
         }
     }
 
-    void topicCallback(std::shared_ptr<rclcpp::SerializedMessage> msg) {
+    void topicCallback(const std::string& topic, std::shared_ptr<rclcpp::SerializedMessage> msg) {
         auto cdrMsg = msg->get_rcl_serialized_message();
         auto len = static_cast<uint32_t>(cdrMsg.buffer_length);
 
@@ -69,7 +78,8 @@ private:
         std::vector<uint8_t> payload(bytePointer, bytePointer + sizeof(len));
 
         payload.insert(payload.end(), cdrMsg.buffer, cdrMsg.buffer + cdrMsg.buffer_length);
-        dtn->sendMessage(payload);
+
+        dtn->sendMessage(payload, topic);
     }
 
     // TODO: Use this dynamic type support stuff to get the header...
@@ -103,18 +113,28 @@ private:
 public:
     DtnProxy() : Node("dtn_proxy") {
         // TODO: cleanup includes
+
         loadConfig();
         dtn = std::make_unique<DtndClient>(config.dtn, this->get_name());
         dtn->setMessageHandler(std::bind(&DtnProxy::onDtnMessage, this, std::placeholders::_1));
-        dtn->registerEndpoint("bla");
+        // TODO: check order of init / introduce ready flag (return values)
+        initPublisher();
 
-        initRosInterface();
+        std::vector<std::string> topics;
+        std::transform(publisher.begin(), publisher.end(), std::back_inserter(topics),
+                       [](auto const& pubMap) { return pubMap.first; });
+
+        if (!dtn->connect(topics)) fatalShutdown("Error connecting to dtnd!");
+        initSubscriber();
+
         RCLCPP_INFO_STREAM(this->get_logger(), "DtnProxy up.");
     }
 
-    void onDtnMessage(const std::vector<uint8_t>& data) {
-        const std::string topic = "echo";
+    void onDtnMessage(const data::WsReceive& bundle) {
         const uint8_t SIZE_BYTES = 4;
+        auto data = bundle.data;
+        auto topic = bundle.dst;
+        topic = topic.substr(topic.rfind("/") + 1);
 
         // Get cdr buffer size from first 4 bytes
         uint32_t size;

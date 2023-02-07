@@ -5,8 +5,8 @@
 #include <thread>
 
 WsClient::WsClient(const std::string& loggerName) {
-    bundleHandler = [](std::string) {};
-    openHandler = [] {};
+    bundleHandler = [](const std::string&) {};
+    connectionStatusHandler = [](bool) {};
 
     log = std::make_unique<Logger>(loggerName, "ws");
 
@@ -33,7 +33,9 @@ WsClient::~WsClient() {
 
 void WsClient::setBundleHandler(bundleHandler_t h) { bundleHandler = h; }
 
-void WsClient::setOpenHandler(openHandler_t h) { openHandler = h; }
+void WsClient::setConnectionStatusHandler(connectionStatusHandler_t h) {
+    connectionStatusHandler = h;
+}
 
 bool WsClient::connect(const std::string& uri) {
     websocketpp::lib::error_code errorCode;
@@ -95,7 +97,7 @@ void WsClient::send(const std::vector<uint8_t>& msg) {
 
 void WsClient::onOpen(client* c, websocketpp::connection_hdl hdl) {
     metadata.status = Status::OPEN;
-    openHandler();
+    connectionStatusHandler(true);
 
     (void)c;
     (void)hdl;
@@ -108,6 +110,7 @@ void WsClient::onOpen(client* c, websocketpp::connection_hdl hdl) {
 void WsClient::onFail(client* c, websocketpp::connection_hdl hdl) {
     client::connection_ptr con = c->get_con_from_hdl(hdl);
     metadata.status = Status::FAILED;
+    connectionStatusHandler(false);
     metadata.errorReason = con->get_ec().message();
     // TODO: check response header
     // server = con->get_response_header("Server");
@@ -137,6 +140,7 @@ void WsClient::onMessage(websocketpp::connection_hdl, client::message_ptr msg) {
         log->DBG() << ">> " << websocketpp::utility::to_hex(payload);
     } else {
         // Response to command
+        // TODO: Error handling
         log->DBG() << ">> " << payload;
     }
 }

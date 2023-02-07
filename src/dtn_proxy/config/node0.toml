@@ -21,4 +21,7 @@ sub = [
     ]
 
 # Topics to publish
-pub = [["echo", "geometry_msgs/msg/PoseStamped"]]
+pub = [
+    ["test", "geometry_msgs/msg/PoseStamped"],
+    ["echo", "geometry_msgs/msg/PoseStamped"]
+    ]

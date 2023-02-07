@@ -1,29 +1,33 @@
 #include "dtnd_client.hpp"
 
-#include "ws_datatypes.hpp"
-
 using std::string;
 
 DtndClient::DtndClient(const proxyConfig::DtnConfig& config, std::string loggerName)
     : config(config) {
-    messageHandler = [](const std::vector<uint8_t>) {};
+    messageHandler = [](const data::WsReceive&) {};
 
     http = std::make_unique<httplib::Client>(config.address, config.port);
     ws = std::make_unique<WsClient>(loggerName);
     log = std::make_unique<Logger>(loggerName, "dtn");
 
-    getLocalNodeId();
-
-    ws->setOpenHandler(std::bind(&DtndClient::onOpen, this));
+    ws->setConnectionStatusHandler(
+        std::bind(&DtndClient::onConnectionStatus, this, std::placeholders::_1));
     ws->setBundleHandler(std::bind(&DtndClient::onBundle, this, std::placeholders::_1));
+    ws->connect("ws://" + config.address + ":" + std::to_string(config.port) + "/ws");
 }
 
 void DtndClient::setMessageHandler(messageHandler_t h) { messageHandler = h; }
 
-void DtndClient::onOpen() {
-    log->INFO() << "WS Connection to dtnd opened.";
-    ws->send("/data");
-    ws->send("/subscribe bla");
+void DtndClient::onConnectionStatus(const bool success) {
+    std::lock_guard<std::mutex> lock(wsMutex);
+    if (success) {
+        wsConnected = WsState::CONNECTED;
+        log->INFO() << "WS Connection to dtnd opened.";
+    } else {
+        wsConnected = WsState::ERROR;
+        log->WARN() << "WS Connection to dtnd failed.";
+    }
+    wsCV.notify_all();
 }
 
 void DtndClient::onBundle(const std::string& bundle) {
@@ -32,29 +36,52 @@ void DtndClient::onBundle(const std::string& bundle) {
     nlohmann::json j = nlohmann::json::from_cbor(bundle);
     log->DBG() << j;
 
-    auto payload = j.get<data::Dtn2Ws>().data;
+    auto payload = j.get<data::WsReceive>();
     messageHandler(payload);
 }
 
 DtndClient::Result::Result(bool success = false, string content = "")
     : success(success), content(content) {}
 
-bool DtndClient::registerEndpoint(string eid) {
-    auto result = getRequest("/register?" + eid);
-    ws->connect("ws://localhost:3000/ws");
-    log->DBG() << result.content;
-    return result.success;
+bool DtndClient::registerSubscribeEndpoints() {
+    for (auto& eid : endpointsToRegister) {
+        auto result = getRequest("/register?" + eid);
+        log->DBG() << result.content;
+        if (!result.success) return false;
+
+        ws->send("/subscribe " + eid);
+    }
+    return true;
 }
 
-void DtndClient::sendMessage(const std::vector<uint8_t>& payload) {
+bool DtndClient::connect(const std::vector<std::string>& endpoints) {
+    endpointsToRegister = endpoints;
+
+    // wait for WS connection
+    std::unique_lock<std::mutex> lock(wsMutex);
+    wsCV.wait(lock, [this] { return WsState::NOTSET != wsConnected; });
+    if (wsConnected) {
+        // Set WS to cbor data mode
+        ws->send("/data");
+
+        bool ok = true;
+        ok &= getLocalNodeId();
+        ok &= registerSubscribeEndpoints();
+        return ok;
+    } else {
+        return false;
+    }
+}
+
+void DtndClient::sendMessage(const std::vector<uint8_t>& payload, const std::string& endpoint) {
     const auto MS_IN_MINUTE = 60 * 1000;
 
-    data::Ws2Dtn msg{
-        localNodeId,                     // std::string src,
-        config.remoteNodeId + "/bla",    // std::string dst,
-        false,                           // bool delivery_notification,
-        config.lifetime * MS_IN_MINUTE,  // uint64_t lifetime,
-        payload,                         // std::vector<uint8_t>& data,
+    data::WsSend msg{
+        localNodeId,                           // std::string src,
+        config.remoteNodeId + "/" + endpoint,  // std::string dst,
+        false,                                 // bool delivery_notification,
+        config.lifetime * MS_IN_MINUTE,        // uint64_t lifetime,
+        payload,                               // std::vector<uint8_t>& data,
     };
     nlohmann::json jsonMsg = msg;
     std::vector<uint8_t> cborMsg = nlohmann::json::to_cbor(jsonMsg);
@@ -75,11 +102,13 @@ DtndClient::Result DtndClient::getRequest(string path) {
     return Result(false, content);
 }
 
-void DtndClient::getLocalNodeId() {
+bool DtndClient::getLocalNodeId() {
     auto result = getRequest("/status/nodeid");
     if (result.success) {
         localNodeId = result.content;
+        return true;
     } else {
         log->ERR() << "Requesting nodeId: " << result.content;
+        return false;
     }
 }

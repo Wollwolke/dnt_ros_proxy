@@ -12,7 +12,7 @@ private:
 
     using client = websocketpp::client<websocketpp::config::asio_client>;
     using bundleHandler_t = std::function<void(const std::string&)>;
-    using openHandler_t = std::function<void()>;
+    using connectionStatusHandler_t = std::function<void(bool)>;
 
     using Metadata = struct Metadata {
         websocketpp::connection_hdl hdl;
@@ -21,7 +21,7 @@ private:
     };
 
     bundleHandler_t bundleHandler;
-    openHandler_t openHandler;
+    connectionStatusHandler_t connectionStatusHandler;
     client endpoint;
     Metadata metadata;
     std::shared_ptr<websocketpp::lib::thread> thread;
@@ -33,7 +33,7 @@ public:
     ~WsClient();
 
     void setBundleHandler(bundleHandler_t h);
-    void setOpenHandler(openHandler_t h);
+    void setConnectionStatusHandler(connectionStatusHandler_t h);
 
     bool connect(const std::string& uri);
     void close(websocketpp::close::status::value code);

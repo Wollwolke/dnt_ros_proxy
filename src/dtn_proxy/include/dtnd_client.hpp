@@ -3,12 +3,14 @@
 
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
 #include "configuration.hpp"
 #include "logger.hpp"
 #include "ws_client.hpp"
+#include "ws_datatypes.hpp"
 
 class DtndClient {
 private:
@@ -17,7 +19,9 @@ private:
         std::string content;
         Result(bool success, std::string content);
     };
-    using messageHandler_t = std::function<void(const std::vector<uint8_t>&)>;
+    using messageHandler_t = std::function<void(const data::WsReceive&)>;
+
+    enum WsState { NOTSET = -1, ERROR, CONNECTED };
 
     const proxyConfig::DtnConfig config;
 
@@ -25,20 +29,26 @@ private:
     std::unique_ptr<WsClient> ws;
     std::unique_ptr<Logger> log;
 
+    WsState wsConnected = WsState::NOTSET;
+    std::mutex wsMutex;
+    std::condition_variable wsCV;
+
     messageHandler_t messageHandler;
     std::string localNodeId;
+    std::vector<std::string> endpointsToRegister;
 
     Result getRequest(std::string path);
-    void getLocalNodeId();
+    bool getLocalNodeId();
+    bool registerSubscribeEndpoints();
 
 public:
     DtndClient(const proxyConfig::DtnConfig& config, std::string loggerName = "dtn_lib");
 
     void setMessageHandler(messageHandler_t h);
 
-    void onOpen();
+    void onConnectionStatus(const bool success);
     void onBundle(const std::string& bundle);
 
-    bool registerEndpoint(std::string eid);
-    void sendMessage(const std::vector<uint8_t>& payload);
+    bool connect(const std::vector<std::string>& endpoints);
+    void sendMessage(const std::vector<uint8_t>& payload, const std::string& endpoint);
 };
