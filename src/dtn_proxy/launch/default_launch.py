@@ -20,7 +20,7 @@ def generate_launch_description():
     dtnproxy_node_bot = Node(
         package="dtn_proxy",
         executable="dtnproxy",
-        name="dtn1",
+        name="dtnproxy",
         output="screen",
         # parameters=[{"stationMode": LaunchConfiguration("stationMode")}],
         arguments=[
