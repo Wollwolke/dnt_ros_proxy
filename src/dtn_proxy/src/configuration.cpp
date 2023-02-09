@@ -20,8 +20,10 @@ Config ConfigurationReader::readConfigFile(const std::string& filePath,
     const DtnConfig dtn = initDtnConfig(config, log);
     const RosConfig ros = initRosConfig(config, log);
     const Config cfg{
-        dtn,  // DtnConfig dtn,
-        ros,  // RosConfig ros,
+        toml::find_or<std::string>(config, "statsDir",
+                                   "/tmp/dtnproxy/stats/"),  // std::string statsPath;
+        dtn,                                                 // DtnConfig dtn,
+        ros,                                                 // RosConfig ros,
     };
 
     return cfg;

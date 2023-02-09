@@ -1,5 +1,7 @@
 #include "dtnd_client.hpp"
 
+#include <nlohmann/json.hpp>
+
 using std::string;
 
 DtndClient::DtndClient(const proxyConfig::DtnConfig& config, std::string loggerName)
@@ -31,8 +33,6 @@ void DtndClient::onConnectionStatus(const bool success) {
 }
 
 void DtndClient::onBundle(const std::string& bundle) {
-    log->INFO() << "Got bundle";
-
     nlohmann::json j = nlohmann::json::from_cbor(bundle);
     log->DBG() << j;
 

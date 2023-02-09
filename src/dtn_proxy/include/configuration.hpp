@@ -29,6 +29,7 @@ using DtnConfig = struct DtnConfig {
 };
 
 using Config = struct Config {
+    std::string statsDir;
     DtnConfig dtn;
     RosConfig ros;
 };

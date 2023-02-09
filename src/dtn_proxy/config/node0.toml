@@ -1,5 +1,8 @@
+# Directory to store the statistics in [string]
+statsDir = "/tmp/dtnproxy/stats/"
+
 [dtn]
-#dtnd details
+# dtnd details
 dtndAddress = "127.0.0.1"
 dtndPort = 3000
 

@@ -14,14 +14,19 @@
 #include "configuration.hpp"
 #include "dtnd_client.hpp"
 #include "logger.hpp"
+#include "stats_recorder.hpp"
 #include "ws_datatypes.hpp"
 
 #define PACKAGE_NAME "dtn_proxy"
 
 class DtnProxy : public rclcpp::Node {
 private:
+    // TODO: validate this offset!!
+    const uint32_t CDR_MSG_SIZE_OFFSET = sizeof(size_t) + sizeof(size_t);
+
     proxyConfig::Config config;
 
+    std::unique_ptr<StatsRecorder> stats;
     std::unique_ptr<DtndClient> dtn;
 
     std::map<std::string, std::shared_ptr<rclcpp::GenericSubscription>> subscriber;
@@ -39,7 +44,7 @@ private:
         rclcpp::QoS qos = rclcpp::QoS(10);
 
         for (auto& [topic, type] : config.ros.subTopics) {
-            auto cb = std::bind(&DtnProxy::topicCallback, this, topic, std::placeholders::_1);
+            auto cb = std::bind(&DtnProxy::topicCallback, this, topic, type, std::placeholders::_1);
             subscriber.insert_or_assign(topic,
                                         this->create_generic_subscription(topic, type, qos, cb));
         }
@@ -47,6 +52,8 @@ private:
 
     void fatalShutdown(const std::string& reason) {
         RCLCPP_FATAL(this->get_logger(), reason.c_str());
+        dtn.reset();
+        stats.reset();
         // TODO: how to properly shut down?!?
         rclcpp::shutdown();
     }
@@ -56,7 +63,7 @@ private:
         auto parameterDesc = rcl_interfaces::msg::ParameterDescriptor{};
         parameterDesc.description = "Absolute path to the configuration file.";
 
-        this->declare_parameter("configurationPath", packageShareDirectory + "/config/node0.tomsl",
+        this->declare_parameter("configurationPath", packageShareDirectory + "/config/node0.toml",
                                 parameterDesc);
         auto path =
             this->get_parameter("configurationPath").get_parameter_value().get<std::string>();
@@ -68,9 +75,12 @@ private:
         }
     }
 
-    void topicCallback(const std::string& topic, std::shared_ptr<rclcpp::SerializedMessage> msg) {
+    void topicCallback(const std::string& topic, const std::string& type,
+                       std::shared_ptr<rclcpp::SerializedMessage> msg) {
         auto cdrMsg = msg->get_rcl_serialized_message();
         auto len = static_cast<uint32_t>(cdrMsg.buffer_length);
+
+        stats->rosReceived(topic, type, len + CDR_MSG_SIZE_OFFSET);
 
         // hopefully resolves endianness problem
         len = htonl(len);
@@ -80,6 +90,7 @@ private:
         payload.insert(payload.end(), cdrMsg.buffer, cdrMsg.buffer + cdrMsg.buffer_length);
 
         dtn->sendMessage(payload, topic);
+        stats->dtnSent(topic, type, payload.size());
     }
 
     // TODO: Use this dynamic type support stuff to get the header...
@@ -115,9 +126,11 @@ public:
         // TODO: cleanup includes
 
         loadConfig();
+        stats = std::make_unique<StatsRecorder>(config.statsDir);
+
         dtn = std::make_unique<DtndClient>(config.dtn, this->get_name());
         dtn->setMessageHandler(std::bind(&DtnProxy::onDtnMessage, this, std::placeholders::_1));
-        // TODO: check order of init / introduce ready flag (return values)
+
         initPublisher();
 
         std::vector<std::string> topics;
@@ -125,6 +138,7 @@ public:
                        [](auto const& pubMap) { return pubMap.first; });
 
         if (!dtn->connect(topics)) fatalShutdown("Error connecting to dtnd!");
+
         initSubscriber();
 
         RCLCPP_INFO_STREAM(this->get_logger(), "DtnProxy up.");
@@ -135,6 +149,8 @@ public:
         auto data = bundle.data;
         auto topic = bundle.dst;
         topic = topic.substr(topic.rfind("/") + 1);
+
+        stats->dtnReceived(topic, "unknown", data.size());
 
         // Get cdr buffer size from first 4 bytes
         uint32_t size;
@@ -150,7 +166,10 @@ public:
             rcl_get_default_allocator()  // allocator
         };
 
+        // TODO: find msgType in rosConfig
         publisher.at(topic)->publish(rclcpp::SerializedMessage(cdrMsg));
+        stats->rosSent(topic, "unknown",
+                       static_cast<uint32_t>(cdrMsg.buffer_length) + CDR_MSG_SIZE_OFFSET);
     }
 };
 
