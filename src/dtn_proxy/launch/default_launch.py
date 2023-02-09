@@ -28,7 +28,7 @@ def generate_launch_description():
             # ! breaks when using namespaces...
             "--log-level",
             [
-                "dtn1:=",
+                "dtnproxy:=",
                 LaunchConfiguration("log_level"),
             ],
         ],
