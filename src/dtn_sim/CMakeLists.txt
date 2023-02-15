@@ -28,8 +28,10 @@ endif()
 # Install launch files.
 install(DIRECTORY
   launch
+  map
   models
   param
+  rviz
   urdf
   DESTINATION share/${PROJECT_NAME}/
 )

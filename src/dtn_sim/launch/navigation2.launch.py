@@ -33,9 +33,9 @@ def generate_launch_description():
     map_dir = LaunchConfiguration(
         'map',
         default=os.path.join(
-            get_package_share_directory('turtlebot3_navigation2'),
+            get_package_share_directory('dtn_sim'),
             'map',
-            'map.yaml'))
+            'empty_map.yaml'))
 
     param_file_name = TURTLEBOT3_MODEL + '.yaml'
     param_dir = LaunchConfiguration(
@@ -65,7 +65,7 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'use_sim_time',
-            default_value='false',
+            default_value='true',
             description='Use simulation (Gazebo) clock if true'),
 
         IncludeLaunchDescription(
