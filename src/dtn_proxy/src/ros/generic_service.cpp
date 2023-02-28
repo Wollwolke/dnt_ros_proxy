@@ -12,7 +12,7 @@ namespace dtnproxy::ros {
 using rosidl_typesupport_introspection_cpp::ServiceMembers;
 
 GenericService::GenericService(std::shared_ptr<rcl_node_t> nodeHandle,
-                               const std::string& serviceType, const std::string& serviceName,
+                               const std::string& serviceName, const std::string& serviceType,
                                CallbackType callback, rcl_service_options_t& serviceOptions)
     : ServiceBase(nodeHandle), ServiceTypeSupport(serviceType), callback(callback) {
     // rcl does the static memory allocation here

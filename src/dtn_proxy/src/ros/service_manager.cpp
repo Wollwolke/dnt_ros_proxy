@@ -115,7 +115,7 @@ void ServiceManager::initServers() {
         auto cb = std::bind(&ServiceManager::requestCallback, this, topic, type,
                             std::placeholders::_1, std::placeholders::_2);
         auto server = GenericService::make_shared(
-            nodeHandle.get_node_base_interface()->get_shared_rcl_node_handle(), type, advTopic, cb,
+            nodeHandle.get_node_base_interface()->get_shared_rcl_node_handle(), advTopic, type, cb,
             serviceOptions);
 
         // TODO: Check service group (nullptr)
