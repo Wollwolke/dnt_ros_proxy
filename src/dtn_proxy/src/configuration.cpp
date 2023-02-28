@@ -2,11 +2,10 @@
 
 #include <iostream>
 
-using namespace proxyConfig;
+namespace dtnproxy::conf {
 
-Config ConfigurationReader::readConfigFile(const std::string& filePath,
-                                           const std::string& loggerName) {
-    auto log = Logger(loggerName, "ConfigReader");
+Config ConfigurationReader::readConfigFile(const std::string& filePath) {
+    auto log = Logger("ConfigReader");
 
     toml::value config;
     try {
@@ -58,13 +57,19 @@ RosConfig ConfigurationReader::initRosConfig(const toml::value& config, Logger& 
         auto ros = toml::find(config, "ros");
         try {
             if (ros.contains("sub")) {
-                rosConfig.subTopics =
-                    toml::find<std::vector<proxyConfig::RosConfig::RosTopic>>(ros, "sub");
+                rosConfig.subTopics = toml::find<std::vector<RosConfig::RosTopic>>(ros, "sub");
                 foundTopics = true;
             }
             if (ros.contains("pub")) {
-                rosConfig.pubTopics =
-                    toml::find<std::vector<proxyConfig::RosConfig::RosTopic>>(ros, "pub");
+                rosConfig.pubTopics = toml::find<std::vector<RosConfig::RosTopic>>(ros, "pub");
+                foundTopics = true;
+            }
+            if (ros.contains("servers")) {
+                rosConfig.servers = toml::find<std::vector<RosConfig::RosTopic>>(ros, "servers");
+                foundTopics = true;
+            }
+            if (ros.contains("clients")) {
+                rosConfig.clients = toml::find<std::vector<RosConfig::RosTopic>>(ros, "clients");
                 foundTopics = true;
             }
         } catch (const toml::exception& err) {
@@ -72,11 +77,11 @@ RosConfig ConfigurationReader::initRosConfig(const toml::value& config, Logger& 
             throw ConfigException();
         }
     }
-    if (!foundTopics) log.WARN() << "No topics to subscribe/publish found in config!";
+    if (!foundTopics) log.WARN() << "No topics/services to forward found in config!";
     return rosConfig;
 }
 
-void proxyConfig::RosConfig::RosTopic::from_toml(const toml::value& v) {
+void RosConfig::RosTopic::from_toml(const toml::value& v) {
     try {
         auto tmp = toml::get<std::array<std::string, 2>>(v);
         this->name = tmp[0];
@@ -85,3 +90,4 @@ void proxyConfig::RosConfig::RosTopic::from_toml(const toml::value& v) {
         throw ConfigException(e.what());
     }
 }
+}  // namespace dtnproxy::conf

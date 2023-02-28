@@ -6,6 +6,8 @@
 
 #include "logger.hpp"
 
+namespace dtnproxy {
+
 class WsClient {
 private:
     enum Status : uint8_t;
@@ -29,7 +31,7 @@ private:
     std::unique_ptr<Logger> log;
 
 public:
-    WsClient(const std::string& loggerName = "ws_wrapper");
+    WsClient();
     ~WsClient();
 
     void setBundleHandler(bundleHandler_t h);
@@ -50,3 +52,5 @@ public:
 };
 
 enum WsClient::Status : uint8_t { UNKNOWN, CLOSED, CONNECTING, OPEN, FAILED };
+
+}  // namespace dtnproxy

@@ -9,21 +9,25 @@
 
 #include "configuration.hpp"
 #include "logger.hpp"
+#include "ros/dtn_msg_type.hpp"
 #include "ws_client.hpp"
 #include "ws_datatypes.hpp"
+
+namespace dtnproxy {
 
 class DtndClient {
 private:
     using Result = struct Result {
         bool success;
         std::string content;
-        Result(bool success, std::string content);
+        Result(bool success = false, std::string content = "");
     };
     using messageHandler_t = std::function<void(const data::WsReceive&)>;
+    using DtnEndpoint = std::pair<std::string, ros::DtnMsgType>;
 
     enum WsState { NOTSET = -1, ERROR, CONNECTED };
 
-    const proxyConfig::DtnConfig config;
+    const conf::DtnConfig config;
 
     std::unique_ptr<httplib::Client> http;
     std::unique_ptr<WsClient> ws;
@@ -35,20 +39,24 @@ private:
 
     messageHandler_t messageHandler;
     std::string localNodeId;
-    std::vector<std::string> endpointsToRegister;
+    std::vector<DtnEndpoint> endpointsToRegister;
 
     Result getRequest(std::string path);
     bool getLocalNodeId();
     bool registerSubscribeEndpoints();
+    void buildEndpointId(std::string& endpoint, ros::DtnMsgType type);
 
 public:
-    DtndClient(const proxyConfig::DtnConfig& config, std::string loggerName = "dtn_lib");
+    explicit DtndClient(const conf::DtnConfig& config);
 
     void setMessageHandler(messageHandler_t h);
 
     void onConnectionStatus(const bool success);
     void onBundle(const std::string& bundle);
 
-    bool connect(const std::vector<std::string>& endpoints);
-    void sendMessage(const std::vector<uint8_t>& payload, const std::string& endpoint);
+    bool connect(const std::vector<DtnEndpoint>& endpoints);
+    void sendMessage(const std::vector<uint8_t>& payload, const std::string& endpoint,
+                     ros::DtnMsgType type);
 };
+
+}  // namespace dtnproxy

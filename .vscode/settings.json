@@ -82,7 +82,8 @@
         "csetjmp": "cpp",
         "charconv": "cpp",
         "ranges": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "span": "cpp"
     },
     "C_Cpp.clang_format_fallbackStyle": "{BasedOnStyle: Google, ColumnLimit: 100, IndentWidth: 4, AccessModifierOffset: -4}",
     "python.formatting.provider": "black"

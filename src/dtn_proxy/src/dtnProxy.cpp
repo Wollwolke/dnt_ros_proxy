@@ -1,61 +1,54 @@
 #include <algorithm>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <functional>
-#include <map>
 #include <memory>
+#include <rclcpp/logging.hpp>
+#include <rclcpp/node.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <string>
-// #include <rclcpp/serialization.hpp>
-// #include <rcpputils/shared_library.hpp>
-// #include <rosbag2_cpp/typesupport_helpers.hpp>
-// #include <rosidl_typesupport_introspection_cpp/message_introspection.hpp>
+#include <utility>
 #include <vector>
 
+#include "common.hpp"
 #include "configuration.hpp"
 #include "dtnd_client.hpp"
-#include "logger.hpp"
+#include "ros/transfer.hpp"
 #include "stats_recorder.hpp"
-#include "ws_datatypes.hpp"
 
-#define PACKAGE_NAME "dtn_proxy"
+namespace dtnproxy {
 
 class DtnProxy : public rclcpp::Node {
 private:
-    // TODO: validate this offset!!
-    const uint32_t CDR_MSG_SIZE_OFFSET = sizeof(size_t) + sizeof(size_t);
+    using DtnEndpoint = std::pair<std::string, ros::DtnMsgType>;
 
-    proxyConfig::Config config;
+    conf::Config config;
 
-    std::unique_ptr<StatsRecorder> stats;
-    std::unique_ptr<DtndClient> dtn;
-
-    std::map<std::string, std::shared_ptr<rclcpp::GenericSubscription>> subscriber;
-    std::map<std::string, std::shared_ptr<rclcpp::GenericPublisher>> publisher;
-
-    void initPublisher() {
-        rclcpp::QoS qos = rclcpp::QoS(10);
-
-        for (auto& [topic, type] : config.ros.pubTopics) {
-            publisher.insert_or_assign(topic, this->create_generic_publisher(topic, type, qos));
-        }
-    }
-
-    void initSubscriber() {
-        rclcpp::QoS qos = rclcpp::QoS(10);
-
-        for (auto& [topic, type] : config.ros.subTopics) {
-            auto cb = std::bind(&DtnProxy::topicCallback, this, topic, type, std::placeholders::_1);
-            subscriber.insert_or_assign(topic,
-                                        this->create_generic_subscription(topic, type, qos, cb));
-        }
-    }
+    std::shared_ptr<DtndClient> dtn;
+    std::unique_ptr<ros::Transfer> ros;
 
     void fatalShutdown(const std::string& reason) {
-        RCLCPP_FATAL(this->get_logger(), reason.c_str());
+        RCLCPP_FATAL_STREAM(this->get_logger(), reason);
         dtn.reset();
-        stats.reset();
         // TODO: how to properly shut down?!?
         rclcpp::shutdown();
+    }
+
+    std::vector<DtnEndpoint> buildDtnEndpoints() {
+        using ros::DtnMsgType;
+        std::vector<DtnEndpoint> result;
+
+        std::transform(config.ros.pubTopics.begin(), config.ros.pubTopics.end(),
+                       std::back_inserter(result),
+                       [](auto const& topic) { return std::pair(topic.name, DtnMsgType::TOPIC); });
+
+        std::transform(
+            config.ros.servers.begin(), config.ros.servers.end(), std::back_inserter(result),
+            [](auto const& topic) { return std::pair(topic.name, DtnMsgType::RESPONSE); });
+
+        std::transform(
+            config.ros.clients.begin(), config.ros.clients.end(), std::back_inserter(result),
+            [](auto const& topic) { return std::pair(topic.name, DtnMsgType::REQUEST); });
+        return result;
     }
 
     void loadConfig() {
@@ -69,113 +62,39 @@ private:
             this->get_parameter("configurationPath").get_parameter_value().get<std::string>();
 
         try {
-            config = proxyConfig::ConfigurationReader::readConfigFile(path, this->get_name());
-        } catch (proxyConfig::ConfigException& e) {
+            config = conf::ConfigurationReader::readConfigFile(path);
+        } catch (conf::ConfigException& e) {
             fatalShutdown(e.what());
         }
     }
 
-    void topicCallback(const std::string& topic, const std::string& type,
-                       std::shared_ptr<rclcpp::SerializedMessage> msg) {
-        auto cdrMsg = msg->get_rcl_serialized_message();
-        auto len = static_cast<uint32_t>(cdrMsg.buffer_length);
-
-        stats->rosReceived(topic, type, len + CDR_MSG_SIZE_OFFSET);
-
-        // hopefully resolves endianness problem
-        len = htonl(len);
-        uint8_t* bytePointer = reinterpret_cast<uint8_t*>(&len);
-        std::vector<uint8_t> payload(bytePointer, bytePointer + sizeof(len));
-
-        payload.insert(payload.end(), cdrMsg.buffer, cdrMsg.buffer + cdrMsg.buffer_length);
-
-        dtn->sendMessage(payload, topic);
-        stats->dtnSent(topic, type, payload.size());
-    }
-
-    // TODO: Use this dynamic type support stuff to get the header...
-    // void topic_callback(std::shared_ptr<rclcpp::SerializedMessage> msg) {
-    //     using MessageT = geometry_msgs::msg::PoseStamped;
-    //     MessageT string_msg;
-
-    //     auto msg_type = "geometry_msgs/msg/PoseStamped";
-    //     auto lib = rosbag2_cpp::get_typesupport_library(
-    //         msg_type, "rosidl_typesupport_cpp");
-    //     auto typesupport = rosbag2_cpp::get_typesupport_handle(
-    //         msg_type, "rosidl_typesupport_cpp", lib);
-
-    //     auto cap = msg->capacity();
-    //     auto size = msg->size();
-    //     auto test = msg->get_rcl_serialized_message();
-    //     auto serializer = rclcpp::SerializationBase(typesupport);
-    //     serializer.deserialize_message(msg.get(), &string_msg);
-    //     auto header_timestamp =
-    //         message_filters::message_traits::HasHeader<MessageT>::value;
-    //     RCLCPP_INFO(this->get_logger(), "I heard: %s",
-    //     string_msg.data.c_str());
-    // }
-
-    // void test(std::string type) {
-    //     auto lib = rosbag2_cpp::get_typesupport_library(type, "rosidl_typesupport_cpp");
-    //     auto typesupport = rosbag2_cpp::get_typesupport_handle(type, "rosidl_typesupport_cpp",
-    //     lib);
-    // }
-
 public:
-    DtnProxy() : Node("dtn_proxy") {
-        // TODO: cleanup includes
-
+    DtnProxy() : Node(DEFAULT_NODE_NAME) {
         loadConfig();
-        stats = std::make_unique<StatsRecorder>(config.statsDir);
 
-        dtn = std::make_unique<DtndClient>(config.dtn, this->get_name());
-        dtn->setMessageHandler(std::bind(&DtnProxy::onDtnMessage, this, std::placeholders::_1));
+        dtn = std::make_shared<DtndClient>(config.dtn);
+        ros = std::make_unique<ros::Transfer>(*this, config.ros, dtn);
 
-        initPublisher();
+        dtn->setMessageHandler(
+            std::bind(&ros::Transfer::onDtnMessage, ros.get(), std::placeholders::_1));
+        ros->enableStatsRecorder(std::make_shared<StatsRecorder>(config.statsDir));
 
-        std::vector<std::string> topics;
-        std::transform(publisher.begin(), publisher.end(), std::back_inserter(topics),
-                       [](auto const& pubMap) { return pubMap.first; });
+        ros->initServers();
 
-        if (!dtn->connect(topics)) fatalShutdown("Error connecting to dtnd!");
+        auto dtnEndpoints = buildDtnEndpoints();
+        if (!dtn->connect(dtnEndpoints)) fatalShutdown("Error connecting to dtnd!");
 
-        initSubscriber();
+        ros->initClients();
 
         RCLCPP_INFO_STREAM(this->get_logger(), "DtnProxy up.");
     }
-
-    void onDtnMessage(const data::WsReceive& bundle) {
-        const uint8_t SIZE_BYTES = 4;
-        auto data = bundle.data;
-        auto topic = bundle.dst;
-        topic = topic.substr(topic.rfind("/") + 1);
-
-        stats->dtnReceived(topic, "unknown", data.size());
-
-        // Get cdr buffer size from first 4 bytes
-        uint32_t size;
-        memcpy(&size, &data.front(), SIZE_BYTES);
-        size = ntohl(size);
-
-        std::vector<uint8_t> buffer(data.begin() + SIZE_BYTES, data.end());
-
-        rcl_serialized_message_t cdrMsg{
-            &buffer.front(),             // buffer
-            size,                        // buffer_length
-            size,                        // buffer_capacity
-            rcl_get_default_allocator()  // allocator
-        };
-
-        // TODO: find msgType in rosConfig
-        publisher.at(topic)->publish(rclcpp::SerializedMessage(cdrMsg));
-        stats->rosSent(topic, "unknown",
-                       static_cast<uint32_t>(cdrMsg.buffer_length) + CDR_MSG_SIZE_OFFSET);
-    }
 };
+
+}  // namespace dtnproxy
 
 int main(int argc, char* argv[]) {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<DtnProxy>());
+    rclcpp::spin(std::make_shared<dtnproxy::DtnProxy>());
     rclcpp::shutdown();
     return 0;
 }

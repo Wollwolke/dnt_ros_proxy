@@ -4,11 +4,13 @@
 #include <iostream>
 #include <thread>
 
-WsClient::WsClient(const std::string& loggerName) {
+namespace dtnproxy {
+
+WsClient::WsClient() {
     bundleHandler = [](const std::string&) {};
     connectionStatusHandler = [](bool) {};
 
-    log = std::make_unique<Logger>(loggerName, "ws");
+    log = std::make_unique<Logger>("ws");
 
     metadata.status = Status::UNKNOWN;
 
@@ -167,3 +169,5 @@ std::ostream& operator<<(std::ostream& os, const WsClient::Status& status) {
     };
     return os << static_cast<std::uint8_t>(status);
 }
+
+}  // namespace dtnproxy

@@ -28,3 +28,13 @@ pub = [
     ["test", "geometry_msgs/msg/PoseStamped"],
     ["echo", "geometry_msgs/msg/PoseStamped"]
     ]
+
+# Services to provide
+servers = [
+    ["/add_two_ints", "example_interfaces/srv/AddTwoInts"]
+    ]
+
+# Services to listen to
+clients = [
+    ["/add_two_ints", "example_interfaces/srv/AddTwoInts"]
+    ]

@@ -3,6 +3,9 @@
 #include <iostream>
 #include <rclcpp/rclcpp.hpp>
 
+#include "common.hpp"
+namespace dtnproxy {
+
 class Logger {
 private:
     rclcpp::Logger rosLogger;
@@ -55,8 +58,9 @@ private:
     };
 
 public:
-    Logger(const std::string& loggerName, const std::string& moduleName);
-    ~Logger();
+    explicit Logger(const std::string& moduleName,
+                    const std::string& loggerName = DEFAULT_NODE_NAME);
+    ~Logger() = default;
 
     Debug DBG() { return Debug(rosLogger, name); }
     Info INFO() { return Info(rosLogger, name); }
@@ -64,3 +68,5 @@ public:
     Error ERR() { return Error(rosLogger, name); }
     Fatal FATAL() { return Fatal(rosLogger, name); }
 };
+
+}  // namespace dtnproxy

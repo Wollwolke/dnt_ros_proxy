@@ -106,3 +106,5 @@ AMENT_IGNORE
 
 # Custom
 !.vscode/c_cpp_properties.json
+.cache/
+.clang*

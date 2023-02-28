@@ -9,7 +9,7 @@
 #define TOML11_NO_ERROR_PREFIX
 #include <toml.hpp>
 
-namespace proxyConfig {
+namespace dtnproxy::conf {
 
 using RosConfig = struct RosConfig {
     using RosTopic = struct RosTopic {
@@ -17,8 +17,12 @@ using RosConfig = struct RosConfig {
         std::string type;
         void from_toml(const toml::value& v);
     };
+    using RosService = RosTopic;
+
     std::vector<RosTopic> subTopics;
     std::vector<RosTopic> pubTopics;
+    std::vector<RosService> clients;
+    std::vector<RosService> servers;
 };
 
 using DtnConfig = struct DtnConfig {
@@ -40,7 +44,7 @@ private:
     static RosConfig initRosConfig(const toml::value& config, Logger& log);
 
 public:
-    static Config readConfigFile(const std::string& filePath, const std::string& loggerName);
+    static Config readConfigFile(const std::string& filePath);
 };
 
 class ConfigException : public std::exception {
@@ -52,4 +56,4 @@ public:
     const char* what() { return message.c_str(); }
 };
 
-}  // namespace proxyConfig
+}  // namespace dtnproxy::conf

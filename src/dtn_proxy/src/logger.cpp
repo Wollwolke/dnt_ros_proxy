@@ -1,8 +1,9 @@
 #include "logger.hpp"
 
-Logger::Logger(const std::string& loggerName, const std::string& moduleName)
+namespace dtnproxy {
+
+Logger::Logger(const std::string& moduleName, const std::string& loggerName)
     : rosLogger(rclcpp::get_logger(loggerName)), name(moduleName) {}
-Logger::~Logger() {}
 
 Logger::Base::Base(const rclcpp::Logger& rosLogger, const std::string& name)
     : rosLogger(rosLogger) {
@@ -23,8 +24,7 @@ Logger::Info::~Info() {
     if (!str.empty()) RCLCPP_INFO_STREAM(rosLogger, str);
 }
 
-Logger::Warning::Warning(const rclcpp::Logger& rosLogger,
-                         const std::string& name)
+Logger::Warning::Warning(const rclcpp::Logger& rosLogger, const std::string& name)
     : Logger::Base(rosLogger, name) {}
 Logger::Warning::~Warning() {
     std::string str = namePrefix + ss.str();
@@ -44,3 +44,5 @@ Logger::Fatal::~Fatal() {
     std::string str = namePrefix + ss.str();
     if (!str.empty()) RCLCPP_FATAL_STREAM(rosLogger, str);
 }
+
+}  // namespace dtnproxy
