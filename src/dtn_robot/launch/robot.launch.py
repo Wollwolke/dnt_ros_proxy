@@ -6,8 +6,8 @@ from launch.substitutions import (
 from launch.actions import DeclareLaunchArgument
 from launch_ros.actions import Node
 
-def generate_launch_description():
 
+def generate_launch_description():
     log_lvl_launch_arg = DeclareLaunchArgument(
         "log_level",
         default_value=TextSubstitution(text=str("DEBUG")),
@@ -18,6 +18,13 @@ def generate_launch_description():
         package="dtn_robot",
         executable="control_interface",
         name="controlInterface",
+        output="screen",
+    )
+
+    status_publisher_cmd = Node(
+        package="dtn_robot",
+        executable="control_pub",
+        name="statusPublisher",
         output="screen",
     )
 
@@ -39,8 +46,9 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            log_lvl_launch_arg,
-            dht_fake_cmd,
-            # control_interface_cmd,
+        log_lvl_launch_arg,
+        dht_fake_cmd,
+        control_interface_cmd,
+        status_publisher_cmd
         ]
     )
