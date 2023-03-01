@@ -11,9 +11,9 @@
 #include <string>
 #include <vector>
 
-#include "dtn_robot/msg/point_array.hpp"
-#include "dtn_robot/srv/detail/follow_waypoints__struct.hpp"
-#include "dtn_robot/srv/follow_waypoints.hpp"
+#include "dtn_robot_interfaces/msg/point_array.hpp"
+#include "dtn_robot_interfaces/srv/detail/follow_waypoints__struct.hpp"
+#include "dtn_robot_interfaces/srv/follow_waypoints.hpp"
 #include "nav2_msgs/action/follow_waypoints.hpp"
 
 namespace dtnrobot {
@@ -27,18 +27,18 @@ public:
 
     explicit ControlInterface() : Node("control_interface") {
         this->client = rclcpp_action::create_client<FollowWp>(this, "follow_waypoints");
-        this->service = this->create_service<dtn_robot::srv::FollowWaypoints>(
+        this->service = this->create_service<dtn_robot_interfaces::srv::FollowWaypoints>(
             "follow_waypoints", std::bind(&ControlInterface::serviceCallback, this, _1, _2));
 
         RCLCPP_INFO(get_logger(), "Control interface up.");
     }
 
 private:
-    using Request_t = std::shared_ptr<dtn_robot::srv::FollowWaypoints::Request>;
-    using Response_t = std::shared_ptr<dtn_robot::srv::FollowWaypoints::Response>;
+    using Request_t = std::shared_ptr<dtn_robot_interfaces::srv::FollowWaypoints::Request>;
+    using Response_t = std::shared_ptr<dtn_robot_interfaces::srv::FollowWaypoints::Response>;
 
     rclcpp_action::Client<FollowWp>::SharedPtr client;
-    rclcpp::Service<dtn_robot::srv::FollowWaypoints>::SharedPtr service;
+    rclcpp::Service<dtn_robot_interfaces::srv::FollowWaypoints>::SharedPtr service;
     bool gotGoalResponse = false;
     bool goalResponse;
 
@@ -75,8 +75,7 @@ private:
         this->client->async_send_goal(goalMsg, send_goal_options);
     }
 
-    void serviceCallback(const std::shared_ptr<dtn_robot::srv::FollowWaypoints::Request> request,
-                         std::shared_ptr<dtn_robot::srv::FollowWaypoints::Response> response) {
+    void serviceCallback(const Request_t request, Response_t response) {
         std::vector<geometry_msgs::msg::PoseStamped> waypoints;
         geometry_msgs::msg::PoseStamped waypoint;
 
