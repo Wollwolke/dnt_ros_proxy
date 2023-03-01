@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.8)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-project(dtn_sim)
+project(dtn_robot)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -11,12 +11,17 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(sensor_msgs REQUIRED)
 
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+# Msg generation
+find_package(geometry_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
+find_package(geometry_msgs REQUIRED)
+find_package(nav2_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(dtn_robot REQUIRED)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
 
@@ -31,28 +36,33 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(temp_sensor src/temp_sensor.cpp)
+# Msg generation
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/PointArray.msg"
+  "srv/FollowWaypoints.srv"
+  DEPENDENCIES geometry_msgs # Dependency of PointArray.msg
+)
 
-target_include_directories(temp_sensor PRIVATE
+add_executable(control_interface src/control_interface.cpp)
+
+target_include_directories(control_interface PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-ament_target_dependencies(temp_sensor
+ament_target_dependencies(control_interface
+  "dtn_robot"
+  "geometry_msgs"
+  "nav2_msgs"
   "rclcpp"
-  "sensor_msgs")
+  "rclcpp_action")
 
 install(TARGETS
-  temp_sensor
+  control_interface
   DESTINATION lib/${PROJECT_NAME})
 
 # Install files.
 install(DIRECTORY
   launch
-  map
-  models
-  param
-  rviz
-  urdf
   DESTINATION share/${PROJECT_NAME}/
 )
 
