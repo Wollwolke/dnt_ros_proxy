@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.8)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-project(dtn_sim)
+project(test)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -11,11 +11,8 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(nav2_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rclcpp_action REQUIRED)
-find_package(sensor_msgs REQUIRED)
+find_package(example_interfaces REQUIRED)
 
 # uncomment the following section in order to fill in
 # further dependencies manually.
@@ -34,45 +31,11 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(control_interface src/control_interface.cpp)
-
-target_include_directories(control_interface PRIVATE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-
-ament_target_dependencies(control_interface
-  "geometry_msgs"
-  "nav2_msgs"
-  "rclcpp"
-  "rclcpp_action")
-
-add_executable(temp_sensor src/temp_sensor.cpp)
-
-target_include_directories(temp_sensor PRIVATE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-
-ament_target_dependencies(temp_sensor
-  "rclcpp"
-  "sensor_msgs")
+add_executable(server src/add_two_ints.cpp)
+ament_target_dependencies(server
+  rclcpp example_interfaces)
 
 install(TARGETS
-  control_interface
+  server
   DESTINATION lib/${PROJECT_NAME})
-
-install(TARGETS
-  temp_sensor
-  DESTINATION lib/${PROJECT_NAME})
-
-# Install files.
-install(DIRECTORY
-  launch
-  map
-  models
-  param
-  rviz
-  urdf
-  DESTINATION share/${PROJECT_NAME}/
-)
-
 ament_package()
