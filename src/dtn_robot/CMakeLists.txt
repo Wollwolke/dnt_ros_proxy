@@ -12,11 +12,16 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 
-find_package(geometry_msgs REQUIRED)
-find_package(nav2_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
+
+find_package(diagnostic_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav2_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 find_package(sensor_msgs REQUIRED)
+
 find_package(dtn_robot_interfaces REQUIRED)
 
 if(BUILD_TESTING)
@@ -33,12 +38,11 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+# Control Interface
 add_executable(control_interface src/control_interface.cpp)
-
 target_include_directories(control_interface PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-
 ament_target_dependencies(control_interface
   "dtn_robot_interfaces"
   "geometry_msgs"
@@ -46,15 +50,31 @@ ament_target_dependencies(control_interface
   "rclcpp"
   "rclcpp_action")
 
+# DHT fake sensor
 add_executable(dht_fake src/dht_fake_sensor.cpp)
-
 target_include_directories(dht_fake PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-
 ament_target_dependencies(dht_fake
   "rclcpp"
   "sensor_msgs")
+
+# Status Publisher
+add_executable(status_pub src/status_publisher.cpp)
+target_include_directories(status_pub PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(status_pub
+  "rclcpp"
+  "diagnostic_msgs"
+  "geometry_msgs"
+  "tf2"
+  "tf2_ros"
+  "sensor_msgs")
+
+install(TARGETS
+  status_pub
+  DESTINATION lib/${PROJECT_NAME})
 
 install(TARGETS
   dht_fake
