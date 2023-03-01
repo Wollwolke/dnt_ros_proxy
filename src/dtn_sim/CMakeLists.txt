@@ -11,8 +11,6 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(sensor_msgs REQUIRED)
 
 # uncomment the following section in order to fill in
 # further dependencies manually.
@@ -30,20 +28,6 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
-
-add_executable(temp_sensor src/temp_sensor.cpp)
-
-target_include_directories(temp_sensor PRIVATE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-
-ament_target_dependencies(temp_sensor
-  "rclcpp"
-  "sensor_msgs")
-
-install(TARGETS
-  temp_sensor
-  DESTINATION lib/${PROJECT_NAME})
 
 # Install files.
 install(DIRECTORY
