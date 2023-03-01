@@ -46,18 +46,18 @@ ament_target_dependencies(control_interface
   "rclcpp"
   "rclcpp_action")
 
-add_executable(temp_sensor src/temp_sensor.cpp)
+add_executable(dht_fake src/dht_fake_sensor.cpp)
 
-target_include_directories(temp_sensor PRIVATE
+target_include_directories(dht_fake PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-ament_target_dependencies(temp_sensor
+ament_target_dependencies(dht_fake
   "rclcpp"
   "sensor_msgs")
 
 install(TARGETS
-  temp_sensor
+  dht_fake
   DESTINATION lib/${PROJECT_NAME})
 
 install(TARGETS
