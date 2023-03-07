@@ -16,8 +16,12 @@ public:
         tempPublisher = this->create_publisher<sensor_msgs::msg::Temperature>("temperature", 10);
         humidityPublisher =
             this->create_publisher<sensor_msgs::msg::RelativeHumidity>("humidity", 10);
+        dist = std::uniform_real_distribution<>(0.8, 1.3);
+
+        tempMsg.header.frame_id = "imu_link";
+        humidityMsg.header.frame_id = "imu_link";
+
         timer = this->create_wall_timer(500ms, std::bind(&DhtFake::timerCallback, this));
-        dist = std::uniform_real_distribution<>(0.7, 1.5);
     }
 
 private:

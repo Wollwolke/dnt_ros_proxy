@@ -23,7 +23,7 @@ def generate_launch_description():
 
     status_publisher_cmd = Node(
         package="dtn_robot",
-        executable="control_pub",
+        executable="status_pub",
         name="statusPublisher",
         output="screen",
     )

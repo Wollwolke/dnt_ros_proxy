@@ -76,6 +76,7 @@ private:
             auto transform = tfBuffer->lookupTransform("map", "base_link", tf2::TimePointZero);
             posMsg.point.x = transform.transform.translation.x;
             posMsg.point.y = transform.transform.translation.y;
+            posMsg.header.stamp = now();
         } catch (const tf2::TransformException& ex) {
             auto& clk = *this->get_clock();
             RCLCPP_WARN_STREAM_THROTTLE(this->get_logger(), clk, 5000, "Could not transform map to base_link: " << ex.what());

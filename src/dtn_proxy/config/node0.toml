@@ -19,22 +19,22 @@ lifetime = 5
 
 # Topics to subscribe to
 sub = [
-    ["test", "geometry_msgs/msg/PoseStamped"],
-    ["bla", "std_msgs/msg/String"]
+    ["/temperature", "sensor_msgs/msg/Temperature"],
+    ["/humidity", "sensor_msgs/msg/RelativeHumidity"]
     ]
 
 # Topics to publish
-pub = [
-    ["test", "geometry_msgs/msg/PoseStamped"],
-    ["echo", "geometry_msgs/msg/PoseStamped"]
-    ]
+# pub = [
+#     ["test", "geometry_msgs/msg/PoseStamped"],
+#     ["echo", "geometry_msgs/msg/PoseStamped"]
+#     ]
 
 # Services to provide
-servers = [
-    ["/add_two_ints", "example_interfaces/srv/AddTwoInts"]
-    ]
+# servers = [
+#     ["/add_two_ints", "example_interfaces/srv/AddTwoInts"]
+#     ]
 
 # Services to listen to
-clients = [
-    ["/add_two_ints", "example_interfaces/srv/AddTwoInts"]
-    ]
+# clients = [
+#     ["/add_two_ints", "example_interfaces/srv/AddTwoInts"]
+#     ]
