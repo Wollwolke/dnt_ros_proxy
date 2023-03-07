@@ -11,13 +11,11 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(example_interfaces REQUIRED)
 
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rosbag2_cpp REQUIRED)
 find_package(rosidl_typesupport_introspection_cpp REQUIRED)
 find_package(rosidl_typesupport_cpp REQUIRED)
 
@@ -40,7 +38,8 @@ file(GLOB SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/ros/*.cpp)
 
 add_executable(dtnproxy ${SOURCES})
-ament_target_dependencies(dtnproxy rclcpp rosbag2_cpp rosidl_typesupport_introspection_cpp rosidl_typesupport_cpp example_interfaces)
+ament_target_dependencies(dtnproxy rclcpp rosidl_typesupport_introspection_cpp rosidl_typesupport_cpp)
+target_compile_definitions(dtnproxy PRIVATE ASIO_STANDALONE)
 
 target_include_directories(dtnproxy PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
