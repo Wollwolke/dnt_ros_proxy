@@ -5,20 +5,27 @@
 #include <memory>
 #include <rclcpp/serialized_message.hpp>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include "pipeline/pipeline.hpp"
+#include "pipeline/rate_limit.hpp"
 #include "ros/dtn_msg_type.hpp"
 
 namespace dtnproxy::ros {
 
 void TopicManager::topicCallback(const std::string& topic, const std::string& type,
                                  std::shared_ptr<rclcpp::SerializedMessage> msg) {
-    std::vector<uint8_t> payload;
-    auto rosMsgSize = buildDtnPayload(payload, msg);
-    if (stats) stats->rosReceived(topic, type, rosMsgSize, DtnMsgType::TOPIC);
+    // TODO: fix stats
+    // run optimization pipeline before sending msg over DTN
+    if (subscriber.at(topic).second.run(msg)) {
+        std::vector<uint8_t> payload;
+        auto rosMsgSize = buildDtnPayload(payload, msg);
+        if (stats) stats->rosReceived(topic, type, rosMsgSize, DtnMsgType::TOPIC);
 
-    dtn->sendMessage(payload, topic, DtnMsgType::TOPIC);
-    if (stats) stats->dtnSent(topic, type, payload.size(), DtnMsgType::TOPIC);
+        dtn->sendMessage(payload, topic, DtnMsgType::TOPIC);
+        if (stats) stats->dtnSent(topic, type, payload.size(), DtnMsgType::TOPIC);
+    }
 }
 
 // TODO: Use this dynamic type support stuff to get the header...
@@ -85,9 +92,14 @@ void TopicManager::initSubscriber() {
     auto qos = rclcpp::QoS(10);
 
     for (const auto& [topic, type] : config.subTopics) {
+        pipeline::Pipeline pipe;
+        pipe.appendActions(std::make_unique<pipeline::RateLimitAction>(5));
+
         auto cb = std::bind(&TopicManager::topicCallback, this, topic, type, std::placeholders::_1);
-        subscriber.insert_or_assign(topic,
-                                    nodeHandle.create_generic_subscription(topic, type, qos, cb));
+
+        subscriber.insert_or_assign(
+            topic, std::make_pair(nodeHandle.create_generic_subscription(topic, type, qos, cb),
+                                  std::move(pipe)));
 
         log->INFO() << "Subscribed to topic:\t" << topic;
     }
