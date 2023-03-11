@@ -48,7 +48,7 @@ name = "test"
     name = "RateLimit"
     params = ["10"]
 
-    [[profile.module]]
-    name = "RateLimit2"
-    params = ["104", "1"]
+    # [[profile.module]]
+    # name = "RateLimit2"
+    # params = ["104", "1"]
 

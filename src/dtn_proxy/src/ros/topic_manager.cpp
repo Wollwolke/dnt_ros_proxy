@@ -92,14 +92,14 @@ void TopicManager::initSubscriber() {
     auto qos = rclcpp::QoS(10);
 
     for (const auto& [topic, type, profile] : config.subTopics) {
-        pipeline::Pipeline pipe;
-        pipe.appendActions(std::make_unique<pipeline::RateLimitAction>(5));
+        pipeline::Pipeline pipeline;
+        pipeline.initPipeline(config.profiles, profile);
 
         auto cb = std::bind(&TopicManager::topicCallback, this, topic, type, std::placeholders::_1);
 
         subscriber.insert_or_assign(
             topic, std::make_pair(nodeHandle.create_generic_subscription(topic, type, qos, cb),
-                                  std::move(pipe)));
+                                  std::move(pipeline)));
 
         log->INFO() << "Subscribed to topic:\t" << topic;
     }

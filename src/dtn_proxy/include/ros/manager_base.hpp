@@ -6,6 +6,7 @@
 
 #include "configuration.hpp"
 #include "dtnd_client.hpp"
+#include "pipeline/pipeline.hpp"
 #include "stats_recorder.hpp"
 
 namespace dtnproxy::ros {

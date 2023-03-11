@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <utility>
 #include <vector>
+
+#include "pipeline/pipeline.hpp"
 namespace dtnproxy::ros {
 
 ManagerBase::ManagerBase(rclcpp::Node& nodeHandle, conf::RosConfig config,
