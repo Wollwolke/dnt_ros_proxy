@@ -80,7 +80,7 @@ void TopicManager::onDtnMessage(const std::string& topic, std::vector<uint8_t>& 
 void TopicManager::initPublisher() {
     auto qos = rclcpp::QoS(10);
 
-    for (const auto& [topic, type] : config.pubTopics) {
+    for (const auto& [topic, type, profile] : config.pubTopics) {
         auto pubTopic = prefixTopic(topic, false);
         publisher.insert_or_assign(topic, nodeHandle.create_generic_publisher(pubTopic, type, qos));
 
@@ -91,7 +91,7 @@ void TopicManager::initPublisher() {
 void TopicManager::initSubscriber() {
     auto qos = rclcpp::QoS(10);
 
-    for (const auto& [topic, type] : config.subTopics) {
+    for (const auto& [topic, type, profile] : config.subTopics) {
         pipeline::Pipeline pipe;
         pipe.appendActions(std::make_unique<pipeline::RateLimitAction>(5));
 

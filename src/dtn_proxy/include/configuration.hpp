@@ -15,14 +15,21 @@ using RosConfig = struct RosConfig {
     using RosTopic = struct RosTopic {
         std::string name;
         std::string type;
+        std::string profile;
         void from_toml(const toml::value& v);
     };
     using RosService = RosTopic;
+    using Module = struct Module {
+        std::string name;
+        std::vector<std::string> params;
+    };
 
     std::vector<RosTopic> subTopics;
     std::vector<RosTopic> pubTopics;
     std::vector<RosService> clients;
     std::vector<RosService> servers;
+
+    std::map<std::string, std::vector<Module>> profiles;
 };
 
 using DtnConfig = struct DtnConfig {
@@ -42,6 +49,7 @@ class ConfigurationReader {
 private:
     static DtnConfig initDtnConfig(const toml::value& config, Logger& log);
     static RosConfig initRosConfig(const toml::value& config, Logger& log);
+    static void initProfilesConfig(const toml::value& config, RosConfig& rosConfig);
 
 public:
     static Config readConfigFile(const std::string& filePath);

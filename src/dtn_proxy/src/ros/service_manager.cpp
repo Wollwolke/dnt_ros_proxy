@@ -109,7 +109,7 @@ void ServiceManager::onDtnResponse(const std::string& topic, std::vector<uint8_t
 void ServiceManager::initServers() {
     auto serviceOptions = rcl_service_get_default_options();
 
-    for (const auto& [topic, type] : config.servers) {
+    for (const auto& [topic, type, profile] : config.servers) {
         auto advTopic = prefixTopic(topic, true);
 
         auto cb = std::bind(&ServiceManager::requestCallback, this, topic, type,
@@ -129,7 +129,7 @@ void ServiceManager::initServers() {
 void ServiceManager::initClients() {
     auto clientOptions = rcl_client_get_default_options();
 
-    for (const auto& [topic, type] : config.clients) {
+    for (const auto& [topic, type, profile] : config.clients) {
         auto client = GenericClient::make_shared(nodeHandle.get_node_base_interface().get(),
                                                  nodeHandle.get_node_graph_interface(), topic, type,
                                                  clientOptions);

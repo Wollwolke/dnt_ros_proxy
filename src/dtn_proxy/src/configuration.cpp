@@ -54,8 +54,8 @@ RosConfig ConfigurationReader::initRosConfig(const toml::value& config, Logger& 
     RosConfig rosConfig;
     bool foundTopics = false;
     if (config.contains("ros")) {
-        auto ros = toml::find(config, "ros");
         try {
+            const auto ros = toml::find(config, "ros");
             if (ros.contains("sub")) {
                 rosConfig.subTopics = toml::find<std::vector<RosConfig::RosTopic>>(ros, "sub");
                 foundTopics = true;
@@ -65,11 +65,11 @@ RosConfig ConfigurationReader::initRosConfig(const toml::value& config, Logger& 
                 foundTopics = true;
             }
             if (ros.contains("servers")) {
-                rosConfig.servers = toml::find<std::vector<RosConfig::RosTopic>>(ros, "servers");
+                rosConfig.servers = toml::find<std::vector<RosConfig::RosService>>(ros, "servers");
                 foundTopics = true;
             }
             if (ros.contains("clients")) {
-                rosConfig.clients = toml::find<std::vector<RosConfig::RosTopic>>(ros, "clients");
+                rosConfig.clients = toml::find<std::vector<RosConfig::RosService>>(ros, "clients");
                 foundTopics = true;
             }
         } catch (const toml::exception& err) {
@@ -77,17 +77,51 @@ RosConfig ConfigurationReader::initRosConfig(const toml::value& config, Logger& 
             throw ConfigException();
         }
     }
-    if (!foundTopics) log.WARN() << "No topics/services to forward found in config!";
+    if (foundTopics) {
+        // load profiles
+        if (config.contains("profile")) {
+            try {
+                initProfilesConfig(config, rosConfig);
+            } catch (const std::exception& err) {
+                log.ERR() << err.what();
+                throw ConfigException();
+            }
+        }
+    } else {
+        log.WARN() << "No topics/services to forward found in config!";
+    }
     return rosConfig;
+}
+
+void ConfigurationReader::initProfilesConfig(const toml::value& config, RosConfig& rosConfig) {
+    const auto profiles = toml::find<std::vector<toml::value>>(config, "profile");
+    for (const auto& profile : profiles) {
+        auto profileName = toml::find<std::string>(profile, "name");
+        std::vector<RosConfig::Module> modules;
+        const auto tomlModules = toml::find<std::vector<toml::value>>(profile, "module");
+        for (const auto& module : tomlModules) {
+            RosConfig::Module mod;
+            mod.name = toml::find<std::string>(module, "name");
+            mod.params = toml::find<std::vector<std::string>>(module, "params");
+            modules.push_back(mod);
+        }
+        rosConfig.profiles.insert_or_assign(profileName, modules);
+    }
 }
 
 void RosConfig::RosTopic::from_toml(const toml::value& v) {
     try {
-        auto tmp = toml::get<std::array<std::string, 2>>(v);
+        auto tmp = toml::get<std::vector<std::string>>(v);
+        if (tmp.size() < 2) {
+            // TODO: Fix exception msg
+            throw ConfigException("Malformed Config in [ros]");
+        }
         this->name = tmp[0];
         this->type = tmp[1];
+        this->profile = (tmp.size() == 3) ? tmp[2] : "";
     } catch (std::exception& e) {
         throw ConfigException(e.what());
     }
 }
+
 }  // namespace dtnproxy::conf
