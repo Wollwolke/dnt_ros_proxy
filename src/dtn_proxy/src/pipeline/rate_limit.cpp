@@ -13,6 +13,8 @@ RateLimitAction::RateLimitAction(unsigned int secondsBetweenMsgs)
 
 Direction RateLimitAction::direction() { return dir; }
 
+uint RateLimitAction::order() { return SEQUENCE_NR; }
+
 bool RateLimitAction::run(std::shared_ptr<rclcpp::SerializedMessage> /*msg*/) {
     using namespace std::chrono;
 

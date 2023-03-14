@@ -1,5 +1,6 @@
 #include "pipeline/pipeline.hpp"
 
+#include <algorithm>
 #include <memory>
 
 #include "pipeline/action_interface.hpp"
@@ -22,16 +23,17 @@ void Pipeline::initPipeline(const PipelineConfig& config, const std::string& pro
                 mod = std::make_unique<RateLimitAction>(stoi(params.at(0)));
                 break;
         }
-        // Check if module should run when msg comes in / leaves proxy
+        // Check if module should run when msg enters / leaves proxy
         if ((mod->direction() & (this->direction | Direction::INOUT)) != 0) {
             actions.push_back(std::move(mod));
         }
     }
+
+    std::sort(actions.begin(), actions.end(),
+              [](auto& first, auto& second) { return first->order() < second->order(); });
 }
 
 bool Pipeline::run(std::shared_ptr<rclcpp::SerializedMessage> msg) {
-    // TODO: sort actions before running
-
     for (auto& action : actions) {
         if (!action->run(msg)) {
             return false;

@@ -16,6 +16,7 @@ private:
 public:
     virtual bool run(std::shared_ptr<rclcpp::SerializedMessage> msg) = 0;
     virtual Direction direction() = 0;
+    virtual uint order() = 0;
 };
 
 }  // namespace dtnproxy::pipeline
