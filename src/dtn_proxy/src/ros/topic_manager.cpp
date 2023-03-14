@@ -92,7 +92,7 @@ void TopicManager::initSubscriber() {
     auto qos = rclcpp::QoS(10);
 
     for (const auto& [topic, type, profile] : config.subTopics) {
-        pipeline::Pipeline pipeline;
+        pipeline::Pipeline pipeline(pipeline::Direction::IN);
         pipeline.initPipeline(config.profiles, profile);
 
         auto cb = std::bind(&TopicManager::topicCallback, this, topic, type, std::placeholders::_1);

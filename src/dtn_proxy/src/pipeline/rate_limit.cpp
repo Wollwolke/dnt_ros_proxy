@@ -4,10 +4,14 @@
 #include <iostream>
 #include <rclcpp/time.hpp>
 
+#include "pipeline/action_interface.hpp"
+
 namespace dtnproxy::pipeline {
 
 RateLimitAction::RateLimitAction(unsigned int secondsBetweenMsgs)
     : deltaT(secondsBetweenMsgs * MS_IN_SECOND) {}
+
+Direction RateLimitAction::direction() { return dir; }
 
 bool RateLimitAction::run(std::shared_ptr<rclcpp::SerializedMessage> /*msg*/) {
     using namespace std::chrono;

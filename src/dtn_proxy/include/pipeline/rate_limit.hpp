@@ -10,11 +10,14 @@ class RateLimitAction : public IAction {
 private:
     const int MS_IN_SECOND = 1000;
     const unsigned int deltaT;
+    const Direction dir = Direction::IN;
+
     std::chrono::time_point<std::chrono::steady_clock> lastMsgSentTime;
 
 public:
     RateLimitAction(unsigned int secondsBetweenMsgs);
 
+    Direction direction() override;
     bool run(std::shared_ptr<rclcpp::SerializedMessage> msg) override;
 };
 

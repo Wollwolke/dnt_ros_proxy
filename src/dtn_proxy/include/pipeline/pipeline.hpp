@@ -15,8 +15,11 @@ private:
     using PipelineConfig = std::map<std::string, std::vector<conf::RosConfig::Module>>;
 
     std::vector<std::unique_ptr<IAction>> actions;
+    Direction direction;
 
 public:
+    Pipeline(Direction dir);
+
     void initPipeline(const PipelineConfig& config, const std::string& profile);
     bool run(std::shared_ptr<rclcpp::SerializedMessage> msg);
 };
