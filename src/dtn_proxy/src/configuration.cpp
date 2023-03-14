@@ -1,6 +1,9 @@
 #include "configuration.hpp"
 
 #include <iostream>
+#include <vector>
+
+#include "pipeline/modules.hpp"
 
 namespace dtnproxy::conf {
 
@@ -87,6 +90,12 @@ RosConfig ConfigurationReader::initRosConfig(const toml::value& config, Logger& 
                 throw ConfigException();
             }
         }
+        auto requiredProfiles = collectRequiredProfiles(rosConfig);
+        for (const auto& profile : requiredProfiles) {
+            if (rosConfig.profiles.find(profile) == rosConfig.profiles.end()) {
+                throw ConfigException(std::string("Required profile not found: ").append(profile));
+            }
+        }
     } else {
         log.WARN() << "No topics/services to forward found in config!";
     }
@@ -101,12 +110,43 @@ void ConfigurationReader::initProfilesConfig(const toml::value& config, RosConfi
         const auto tomlModules = toml::find<std::vector<toml::value>>(profile, "module");
         for (const auto& module : tomlModules) {
             RosConfig::Module mod;
-            mod.name = toml::find<std::string>(module, "name");
+            auto moduleName = toml::find<std::string>(module, "name");
+            mod.name = resolveStringModule(moduleName);
             mod.params = toml::find<std::vector<std::string>>(module, "params");
             modules.push_back(mod);
         }
         rosConfig.profiles.insert_or_assign(profileName, modules);
     }
+}
+
+pipeline::Module ConfigurationReader::resolveStringModule(const std::string& moduleName) {
+    using pipeline::Module;
+    using pipeline::moduleMapping;
+
+    auto itr = moduleMapping.find(moduleName);
+    if (itr != moduleMapping.end()) {
+        return itr->second;
+    }
+    throw ConfigException(std::string("Module not found: ").append(moduleName));
+}
+
+std::vector<std::string> ConfigurationReader::collectRequiredProfiles(const RosConfig& rosConfig) {
+    std::vector<std::string> profiles;
+    std::vector<std::vector<RosConfig::RosTopic>> temp;
+    temp.emplace_back(rosConfig.pubTopics);
+    temp.emplace_back(rosConfig.subTopics);
+    temp.emplace_back(rosConfig.servers);
+    temp.emplace_back(rosConfig.clients);
+
+    for (const auto& vec : temp) {
+        for (const auto& topic : vec) {
+            if (!topic.profile.empty()) {
+                profiles.push_back(topic.profile);
+            }
+        }
+    }
+
+    return profiles;
 }
 
 void RosConfig::RosTopic::from_toml(const toml::value& v) {
