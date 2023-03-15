@@ -4,7 +4,6 @@
 #include <utility>
 #include <vector>
 
-#include "pipeline/pipeline.hpp"
 namespace dtnproxy::ros {
 
 ManagerBase::ManagerBase(rclcpp::Node& nodeHandle, conf::RosConfig config,
@@ -13,6 +12,11 @@ ManagerBase::ManagerBase(rclcpp::Node& nodeHandle, conf::RosConfig config,
 
 void ManagerBase::setStatsRecorder(std::shared_ptr<StatsRecorder> statsRecorder) {
     stats = statsRecorder;
+}
+
+uint32_t ManagerBase::getRosMsgSize(std::shared_ptr<const rclcpp::SerializedMessage> msg) const {
+    auto rosBufferSize = static_cast<uint32_t>(msg->get_rcl_serialized_message().buffer_length);
+    return rosBufferSize + CDR_MSG_SIZE_OFFSET;
 }
 
 uint32_t ManagerBase::buildDtnPayload(std::vector<uint8_t>& payload,

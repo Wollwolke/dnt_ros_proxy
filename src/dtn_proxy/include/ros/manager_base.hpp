@@ -6,7 +6,6 @@
 
 #include "configuration.hpp"
 #include "dtnd_client.hpp"
-#include "pipeline/pipeline.hpp"
 #include "stats_recorder.hpp"
 
 namespace dtnproxy::ros {
@@ -24,6 +23,8 @@ protected:
 
     ManagerBase(rclcpp::Node& nodeHandle, conf::RosConfig config, std::shared_ptr<DtndClient> dtn,
                 const std::unique_ptr<Logger>& log);
+
+    uint32_t getRosMsgSize(std::shared_ptr<const rclcpp::SerializedMessage> msg) const;
 
     uint32_t buildDtnPayload(std::vector<uint8_t>& payload,
                              const std::shared_ptr<rclcpp::SerializedMessage>& msg, int reqId = -1);

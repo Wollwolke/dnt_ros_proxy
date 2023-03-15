@@ -15,12 +15,13 @@ namespace dtnproxy::ros {
 
 void TopicManager::topicCallback(const std::string& topic, const std::string& type,
                                  std::shared_ptr<rclcpp::SerializedMessage> msg) {
-    // TODO: fix stats
+    auto rosMsgSize = getRosMsgSize(msg);
+    if (stats) stats->rosReceived(topic, type, rosMsgSize, DtnMsgType::TOPIC);
+
     // run optimization pipeline before sending msg over DTN
     if (subscriber.at(topic).second.run(msg)) {
         std::vector<uint8_t> payload;
-        auto rosMsgSize = buildDtnPayload(payload, msg);
-        if (stats) stats->rosReceived(topic, type, rosMsgSize, DtnMsgType::TOPIC);
+        buildDtnPayload(payload, msg);
 
         dtn->sendMessage(payload, topic, DtnMsgType::TOPIC);
         if (stats) stats->dtnSent(topic, type, payload.size(), DtnMsgType::TOPIC);
@@ -68,16 +69,13 @@ void TopicManager::onDtnMessage(const std::string& topic, std::vector<uint8_t>& 
     };
     auto msg = std::make_shared<rclcpp::SerializedMessage>(cdrMsg);
 
-    // TODO: fix stats
-    // run optimization pipeline before sending msg over DTN
+    // run optimization pipeline before sending ROS msgs
     if (publisher.at(topic).second.run(msg)) {
         publisher.at(topic).first->publish(*msg);
 
         // TODO: find msgType in rosConfig
         if (stats) {
-            stats->rosSent(topic, "unknown",
-                           static_cast<uint32_t>(cdrMsg.buffer_length) + CDR_MSG_SIZE_OFFSET,
-                           DtnMsgType::TOPIC);
+            stats->rosSent(topic, "unknown", getRosMsgSize(msg), DtnMsgType::TOPIC);
         }
     }
 }
