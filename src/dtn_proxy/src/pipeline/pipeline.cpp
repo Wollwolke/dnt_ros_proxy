@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "pipeline/action_interface.hpp"
+#include "pipeline/logging.hpp"
 #include "pipeline/modules.hpp"
 #include "pipeline/rate_limit.hpp"
 
@@ -21,6 +22,9 @@ void Pipeline::initPipeline(const PipelineConfig& config, const std::string& pro
             case Module::RATE_LIMIT:
                 // TODO: error handling for parameters
                 mod = std::make_unique<RateLimitAction>(stoi(params.at(0)));
+                break;
+            case Module::LOGGING:
+                mod = std::make_unique<LoggingAction>();
                 break;
         }
         // Check if module should run when msg enters / leaves proxy
