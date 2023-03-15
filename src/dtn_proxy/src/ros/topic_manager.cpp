@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "pipeline/pipeline.hpp"
-#include "pipeline/rate_limit.hpp"
 #include "ros/dtn_msg_type.hpp"
 
 namespace dtnproxy::ros {
@@ -67,13 +66,19 @@ void TopicManager::onDtnMessage(const std::string& topic, std::vector<uint8_t>& 
         size,                        // buffer_capacity
         rcl_get_default_allocator()  // allocator
     };
+    auto msg = std::make_shared<rclcpp::SerializedMessage>(cdrMsg);
 
-    // TODO: find msgType in rosConfig
-    publisher.at(topic)->publish(rclcpp::SerializedMessage(cdrMsg));
-    if (stats) {
-        stats->rosSent(topic, "unknown",
-                       static_cast<uint32_t>(cdrMsg.buffer_length) + CDR_MSG_SIZE_OFFSET,
-                       DtnMsgType::TOPIC);
+    // TODO: fix stats
+    // run optimization pipeline before sending msg over DTN
+    if (publisher.at(topic).second.run(msg)) {
+        publisher.at(topic).first->publish(*msg);
+
+        // TODO: find msgType in rosConfig
+        if (stats) {
+            stats->rosSent(topic, "unknown",
+                           static_cast<uint32_t>(cdrMsg.buffer_length) + CDR_MSG_SIZE_OFFSET,
+                           DtnMsgType::TOPIC);
+        }
     }
 }
 
@@ -81,8 +86,13 @@ void TopicManager::initPublisher() {
     auto qos = rclcpp::QoS(10);
 
     for (const auto& [topic, type, profile] : config.pubTopics) {
+        pipeline::Pipeline pipeline(pipeline::Direction::OUT);
+        pipeline.initPipeline(config.profiles, profile);
+
         auto pubTopic = prefixTopic(topic, false);
-        publisher.insert_or_assign(topic, nodeHandle.create_generic_publisher(pubTopic, type, qos));
+        publisher.insert_or_assign(
+            topic, std::make_pair(nodeHandle.create_generic_publisher(pubTopic, type, qos),
+                                  std::move(pipeline)));
 
         log->INFO() << "Providing topic:\t" << pubTopic;
     }
