@@ -22,7 +22,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 
 
 def generate_launch_description():
@@ -34,16 +34,15 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time", default="true")
     x_pose = LaunchConfiguration("x_pose", default="0.0")
     y_pose = LaunchConfiguration("y_pose", default="0.0")
+    world = LaunchConfiguration("world_file", default="empty_world.world")
 
-    world = os.path.join(
-        get_package_share_directory("dtn_sim"), "worlds", "empty_world.world"
-    )
+    world_path = PathJoinSubstitution([get_package_share_directory("dtn_sim"), "worlds", world])
 
     gzserver_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_gazebo_ros, "launch", "gzserver.launch.py")
         ),
-        launch_arguments={"world": world, "server_required": server_required}.items(),
+        launch_arguments={"world": world_path, "server_required": server_required}.items(),
     )
 
     gzclient_cmd = IncludeLaunchDescription(
