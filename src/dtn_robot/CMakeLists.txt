@@ -17,6 +17,7 @@ find_package(rclcpp_action REQUIRED)
 
 find_package(diagnostic_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(image_transport REQUIRED)
 find_package(nav2_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -59,6 +60,16 @@ ament_target_dependencies(dht_fake
   "rclcpp"
   "sensor_msgs")
 
+# Image Publisher
+add_executable(image_publisher src/image_publisher.cpp)
+target_include_directories(image_publisher PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(image_publisher
+  "rclcpp"
+  "image_transport"
+  "sensor_msgs")
+
 # Status Publisher
 add_executable(status_pub src/status_publisher.cpp)
 target_include_directories(status_pub PRIVATE
@@ -82,6 +93,10 @@ install(TARGETS
 
 install(TARGETS
   control_interface
+  DESTINATION lib/${PROJECT_NAME})
+
+install(TARGETS
+  image_publisher
   DESTINATION lib/${PROJECT_NAME})
 
 # Install files.
