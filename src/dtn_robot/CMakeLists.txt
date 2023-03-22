@@ -61,11 +61,11 @@ ament_target_dependencies(dht_fake
   "sensor_msgs")
 
 # Image Publisher
-add_executable(image_publisher src/image_publisher.cpp)
-target_include_directories(image_publisher PRIVATE
+add_executable(image_pub src/image_publisher.cpp)
+target_include_directories(image_pub PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-ament_target_dependencies(image_publisher
+ament_target_dependencies(image_pub
   "rclcpp"
   "image_transport"
   "sensor_msgs")
@@ -96,7 +96,7 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME})
 
 install(TARGETS
-  image_publisher
+  image_pub
   DESTINATION lib/${PROJECT_NAME})
 
 # Install files.

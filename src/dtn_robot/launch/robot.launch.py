@@ -44,11 +44,19 @@ def generate_launch_description():
         ],
     )
 
+    image_publisher_cmd = Node(
+        package="dtn_robot",
+        executable="image_pub",
+        name="imagePublisher",
+        output="screen",
+    )
+
     return LaunchDescription(
         [
         log_lvl_launch_arg,
         dht_fake_cmd,
         control_interface_cmd,
-        status_publisher_cmd
+        status_publisher_cmd,
+        image_publisher_cmd
         ]
     )
