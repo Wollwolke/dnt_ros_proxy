@@ -55,6 +55,12 @@ def generate_launch_description():
         )
     )
 
+    start_virtual_robot_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([PathJoinSubstitution([FindPackageShare("dtn_robot"), "launch"]), "robot.launch.py"])
+        )
+    )
+
     start_rviz_cmd = Node(
         package="rviz2",
         executable="rviz2",
@@ -68,5 +74,6 @@ def generate_launch_description():
     ld.add_action(start_nav2_cmd)
     ld.add_action(start_sim_cmd)
     ld.add_action(start_rviz_cmd)
+    ld.add_action(start_virtual_robot_cmd)
 
     return ld
