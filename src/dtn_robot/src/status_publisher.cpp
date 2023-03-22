@@ -30,7 +30,8 @@ public:
             this->create_publisher<diagnostic_msgs::msg::DiagnosticStatus>("status/tempSensor", 10);
         posPublisher =
             this->create_publisher<geometry_msgs::msg::PointStamped>("status/position", 10);
-        dist = std::uniform_real_distribution<>(0.0, 100.0);
+        bernoulli_025 = std::bernoulli_distribution(0.025);
+        bernoulli_1 = std::bernoulli_distribution(0.01);
     }
 
 private:
@@ -38,7 +39,8 @@ private:
     static constexpr auto BATT_MIN_V = 3.0;
 
     std::default_random_engine generator;
-    std::uniform_real_distribution<> dist;
+    std::bernoulli_distribution bernoulli_025;
+    std::bernoulli_distribution bernoulli_1;
 
     rclcpp::TimerBase::SharedPtr timer;
 
@@ -55,19 +57,23 @@ private:
 
     void updateBatteryMsg() {
         batteryMsg.header.stamp = now();
-        if (batteryMsg.percentage > 0.01 && 10 > dist(generator)) {
+        if (batteryMsg.percentage > 0.01 && bernoulli_025(generator)) {
             batteryMsg.percentage -= 0.01;
             batteryMsg.voltage = BATT_MIN_V + (batteryMsg.percentage * (BATT_MAX_V - BATT_MIN_V));
         }
     }
 
     void updateDiagMsg() {
+        static auto brokenIterations = 0;
         if (diagnostic_msgs::msg::DiagnosticStatus::OK == diagMsg.level) {
-            if (5 > dist(generator)) {
+            if (bernoulli_1(generator)) {
                 diagMsg.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
             }
-        } else if (60 > dist(generator)) {
+        } else if (brokenIterations >= 7) {
             diagMsg.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
+            brokenIterations = 0;
+        } else {
+            brokenIterations++;
         }
     }
 
@@ -79,7 +85,8 @@ private:
             posMsg.header.stamp = now();
         } catch (const tf2::TransformException& ex) {
             auto& clk = *this->get_clock();
-            RCLCPP_WARN_STREAM_THROTTLE(this->get_logger(), clk, 5000, "Could not transform map to base_link: " << ex.what());
+            RCLCPP_WARN_STREAM_THROTTLE(this->get_logger(), clk, 5000,
+                                        "Could not transform map to base_link: " << ex.what());
             return;
         }
     }
