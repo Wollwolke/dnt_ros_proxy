@@ -1,4 +1,4 @@
-# An array of opints with a header for global reference.
+# An array of points with a header for global reference.
 
 std_msgs/Header header
 
