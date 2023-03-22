@@ -11,6 +11,19 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(rclpy REQUIRED)
+find_package(dtn_robot_interfaces REQUIRED)
+
+# Install Python modules
+ament_python_install_package(${PROJECT_NAME})
+
+# Install Python executables
+install(PROGRAMS
+  scripts/sendWaypoints.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 # uncomment the following section in order to fill in
 # further dependencies manually.
@@ -37,6 +50,7 @@ install(DIRECTORY
   param
   rviz
   urdf
+  worlds
   DESTINATION share/${PROJECT_NAME}/
 )
 
