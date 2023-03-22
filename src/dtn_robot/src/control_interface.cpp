@@ -96,7 +96,8 @@ private:
 
     void feedbackCallback(GoalHandleFollowWp::SharedPtr,
                           const std::shared_ptr<const FollowWp::Feedback> feedback) {
-        RCLCPP_INFO_STREAM(this->get_logger(), "Current Waypoint: " << feedback->current_waypoint);
+        RCLCPP_INFO_STREAM_THROTTLE(this->get_logger(), *this->get_clock(), 10000,
+                                    "Current Waypoint: " << feedback->current_waypoint);
     }
 
     void resultCallback(const GoalHandleFollowWp::WrappedResult& result) {
