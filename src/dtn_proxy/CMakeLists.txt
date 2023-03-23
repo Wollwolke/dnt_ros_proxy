@@ -35,7 +35,8 @@ endif()
 
 file(GLOB SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/ros/*.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/ros/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline/*.cpp)
 
 add_executable(dtnproxy ${SOURCES})
 ament_target_dependencies(dtnproxy rclcpp rosidl_typesupport_introspection_cpp rosidl_typesupport_cpp)

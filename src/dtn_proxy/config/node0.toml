@@ -15,11 +15,11 @@ lifetime = 5
 
 [ros]
 # Format:
-# [topicName, msgType]
+# [topicName, msgType, [profile]]
 
 # Topics to subscribe to
 sub = [
-    ["/temperature", "sensor_msgs/msg/Temperature"],
+    ["/temperature", "sensor_msgs/msg/Temperature", "test"],
     ["/humidity", "sensor_msgs/msg/RelativeHumidity"]
     ]
 
@@ -38,3 +38,16 @@ sub = [
 # clients = [
 #     ["/add_two_ints", "example_interfaces/srv/AddTwoInts"]
 #     ]
+
+
+# optimization profiles
+[[profile]]
+name = "test"
+
+    [[profile.module]]
+    name = "RateLimit"
+    params = ["10"]
+
+    [[profile.module]]
+    name = "Logging"
+    params = []
