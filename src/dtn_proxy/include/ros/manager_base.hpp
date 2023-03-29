@@ -13,7 +13,9 @@ namespace dtnproxy::ros {
 class ManagerBase {
 protected:
     // TODO: validate this offset!!
-    const uint32_t CDR_MSG_SIZE_OFFSET = sizeof(size_t) + sizeof(size_t);
+    // Stats is using no overhead for DTN msgs, so ROS Overhead is also set to zero
+    // const uint32_t CDR_MSG_SIZE_OFFSET = sizeof(size_t) + sizeof(size_t);
+    const uint32_t CDR_MSG_SIZE_OFFSET = 0;
 
     rclcpp::Node& nodeHandle;
     const std::unique_ptr<Logger>& log;
