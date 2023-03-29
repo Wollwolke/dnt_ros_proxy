@@ -46,7 +46,16 @@ target_include_directories(dtnproxy PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/external/cpp-httplib
   ${CMAKE_CURRENT_SOURCE_DIR}/external/toml11
-  ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/data-compressor/DataCompressor/DCLib/inc
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/data-compressor/DataCompressor/DCIOLib/inc
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/data-compressor/DataCompressor/common/inc)
+
+# data-compressor
+target_link_libraries(
+  dtnproxy
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/data-compressor/DataCompressor/build/gcc/DCLib.a
+)
 
 # nlohmann json
 set(JSON_Install OFF CACHE INTERNAL "")

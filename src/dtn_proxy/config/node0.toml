@@ -24,10 +24,9 @@ sub = [
     ]
 
 # Topics to publish
-# pub = [
-#     ["test", "geometry_msgs/msg/PoseStamped"],
-#     ["echo", "geometry_msgs/msg/PoseStamped"]
-#     ]
+pub = [
+    ["/temperature", "sensor_msgs/msg/Temperature", "de"],
+    ]
 
 # Services to provide
 # servers = [
@@ -44,10 +43,21 @@ sub = [
 [[profile]]
 name = "test"
 
-    [[profile.module]]
-    name = "RateLimit"
-    params = ["10"]
+    # [[profile.module]]
+    # name = "RateLimit"
+    # params = ["10"]
+
+    # [[profile.module]]
+    # name = "Logging"
+    # params = []
 
     [[profile.module]]
-    name = "Logging"
+    name = "Compress"
+    params = []
+
+[[profile]]
+name = "de"
+
+    [[profile.module]]
+    name = "Decompress"
     params = []

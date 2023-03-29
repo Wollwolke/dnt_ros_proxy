@@ -5,6 +5,8 @@
 
 #include "pipeline/action_interface.hpp"
 #include "pipeline/logging.hpp"
+#include "pipeline/lzmh_decoding.hpp"
+#include "pipeline/lzmh_encoding.hpp"
 #include "pipeline/modules.hpp"
 #include "pipeline/rate_limit.hpp"
 
@@ -25,6 +27,12 @@ void Pipeline::initPipeline(const PipelineConfig& config, const std::string& pro
                 break;
             case Module::LOGGING:
                 mod = std::make_unique<LoggingAction>();
+                break;
+            case Module::COMPRESS:
+                mod = std::make_unique<LzmhEncodingAction>();
+                break;
+            case Module::DECOMPRESS:
+                mod = std::make_unique<LzmhDecodingAction>();
                 break;
         }
         // Check if module should run when msg enters / leaves proxy
