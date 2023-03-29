@@ -13,3 +13,6 @@
 [submodule "src/dtn_proxy/external/toml11"]
 	path = src/dtn_proxy/external/toml11
 	url = https://github.com/ToruNiina/toml11.git
+[submodule "src/dtn_proxy/external/data-compressor"]
+	path = src/dtn_proxy/external/data-compressor
+	url = https://github.com/CenterForSecureEnergyInformatics/data-compressor.git
