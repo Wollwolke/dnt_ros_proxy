@@ -35,10 +35,8 @@ public:
     ServiceManager(rclcpp::Node& nodeHandle, conf::RosConfig config,
                    std::shared_ptr<DtndClient> dtn, const std::unique_ptr<Logger>& log);
 
-    void onDtnRequest(const std::string& topic, std::vector<uint8_t>& data, uint32_t size,
-                      uint8_t headerId);
-    void onDtnResponse(const std::string& topic, std::vector<uint8_t>& data, uint32_t size,
-                       uint8_t headerId);
+    void onDtnRequest(const std::string& topic, std::vector<uint8_t>& data, uint8_t headerId);
+    void onDtnResponse(const std::string& topic, std::vector<uint8_t>& data, uint8_t headerId);
     void initServers();
     void initClients();
 };

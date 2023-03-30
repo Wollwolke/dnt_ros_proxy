@@ -56,11 +56,11 @@ ServiceManager::ServiceManager(rclcpp::Node& nodeHandle, conf::RosConfig config,
     : ManagerBase(nodeHandle, config, dtn, log) {}
 
 void ServiceManager::onDtnRequest(const std::string& topic, std::vector<uint8_t>& data,
-                                  uint32_t size, uint8_t headerId) {
+                                  uint8_t headerId) {
     rcl_serialized_message_t request{
         &data.front(),               // buffer
-        size,                        // buffer_length
-        size,                        // buffer_capacity
+        data.size(),                 // buffer_length
+        data.size(),                 // buffer_capacity
         rcl_get_default_allocator()  // allocator
     };
     auto sharedRequest = std::make_shared<rclcpp::SerializedMessage>(request);
@@ -79,17 +79,17 @@ void ServiceManager::onDtnRequest(const std::string& topic, std::vector<uint8_t>
 
     // TODO: find msgType in rosConfig
     if (stats) {
-        stats->rosSent(topic, "unknown", static_cast<uint32_t>(size) + CDR_MSG_SIZE_OFFSET,
+        stats->rosSent(topic, "unknown", static_cast<uint32_t>(data.size()) + CDR_MSG_SIZE_OFFSET,
                        DtnMsgType::REQUEST);
     }
 }
 
 void ServiceManager::onDtnResponse(const std::string& topic, std::vector<uint8_t>& data,
-                                   uint32_t size, uint8_t headerId) {
+                                   uint8_t headerId) {
     rcl_serialized_message_t response{
         &data.front(),               // buffer
-        size,                        // buffer_length
-        size,                        // buffer_capacity
+        data.size(),                 // buffer_length
+        data.size(),                 // buffer_capacity
         rcl_get_default_allocator()  // allocator
     };
     auto sharedResponse = std::make_shared<rclcpp::SerializedMessage>(response);
@@ -101,7 +101,7 @@ void ServiceManager::onDtnResponse(const std::string& topic, std::vector<uint8_t
 
     // TODO: find msgType in rosConfig
     if (stats) {
-        stats->rosSent(topic, "unknown", static_cast<uint32_t>(size) + CDR_MSG_SIZE_OFFSET,
+        stats->rosSent(topic, "unknown", static_cast<uint32_t>(data.size()) + CDR_MSG_SIZE_OFFSET,
                        DtnMsgType::RESPONSE);
     }
 }

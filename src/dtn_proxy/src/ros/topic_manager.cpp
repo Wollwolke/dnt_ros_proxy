@@ -59,12 +59,11 @@ TopicManager::TopicManager(rclcpp::Node& nodeHandle, conf::RosConfig config,
                            std::shared_ptr<DtndClient> dtn, const std::unique_ptr<Logger>& log)
     : ManagerBase(nodeHandle, config, dtn, log) {}
 
-void TopicManager::onDtnMessage(const std::string& topic, std::vector<uint8_t>& data,
-                                uint32_t size) {
+void TopicManager::onDtnMessage(const std::string& topic, std::vector<uint8_t>& data) {
     rcl_serialized_message_t cdrMsg{
         &data.front(),               // buffer
-        size,                        // buffer_length
-        size,                        // buffer_capacity
+        data.size(),                 // buffer_length
+        data.size(),                 // buffer_capacity
         rcl_get_default_allocator()  // allocator
     };
     auto msg = std::make_shared<rclcpp::SerializedMessage>(cdrMsg);

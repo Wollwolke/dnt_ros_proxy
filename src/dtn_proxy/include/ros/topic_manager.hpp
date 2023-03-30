@@ -28,7 +28,7 @@ public:
     TopicManager(rclcpp::Node& nodeHandle, conf::RosConfig config, std::shared_ptr<DtndClient> dtn,
                  const std::unique_ptr<Logger>& log);
 
-    void onDtnMessage(const std::string& topic, std::vector<uint8_t>& data, uint32_t size);
+    void onDtnMessage(const std::string& topic, std::vector<uint8_t>& data);
     void initPublisher();
     void initSubscriber();
 };

@@ -72,20 +72,19 @@ void Transfer::onDtnMessage(const data::WsReceive& bundle) {
     auto [topic, type] = splitEndpointAndType(typedEndpoint);
     switch (type) {
         case DtnMsgType::TOPIC: {
-            // std::vector<uint8_t> buffer(data.begin() + BYTES_OF_SIZE, data.end());
-            topics.onDtnMessage(topic, data, data.size());
+            topics.onDtnMessage(topic, data);
         } break;
         case DtnMsgType::REQUEST: {
             std::vector<uint8_t> buffer(data.begin() + SIZE_OF_HEADER_ID, data.end());
             uint8_t headerId;
             memcpy(&headerId, &data.front(), SIZE_OF_HEADER_ID);
-            services.onDtnRequest(topic, buffer, buffer.size(), headerId);
+            services.onDtnRequest(topic, buffer, headerId);
         } break;
         case DtnMsgType::RESPONSE: {
             std::vector<uint8_t> buffer(data.begin() + SIZE_OF_HEADER_ID, data.end());
             uint8_t headerId;
             memcpy(&headerId, &data.front(), SIZE_OF_HEADER_ID);
-            services.onDtnResponse(topic, buffer, buffer.size(), headerId);
+            services.onDtnResponse(topic, buffer, headerId);
         } break;
         case DtnMsgType::INVALID:
         default:
