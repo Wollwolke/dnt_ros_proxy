@@ -23,15 +23,11 @@ uint32_t ManagerBase::buildDtnPayload(std::vector<uint8_t>& payload,
                                       const std::shared_ptr<rclcpp::SerializedMessage>& msg,
                                       int reqId) {
     // Payload layout
-    // Size [4 Bytes] - [RequestHeaderId [1 Byte]] - Payload [X Bytes]
+    // [RequestHeaderId [1 Byte]] - Payload [X Bytes]
 
     auto cdrMsg = msg->get_rcl_serialized_message();
     auto rosBufferSize = static_cast<uint32_t>(cdrMsg.buffer_length);
 
-    auto payloadSize = htonl(rosBufferSize);
-    auto* bytePointer = reinterpret_cast<uint8_t*>(&payloadSize);
-
-    payload.assign(bytePointer, bytePointer + sizeof(payloadSize));
     if (-1 != reqId) {
         payload.push_back(static_cast<uint8_t>(reqId));
     }

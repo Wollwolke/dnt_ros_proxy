@@ -69,31 +69,23 @@ void Transfer::onDtnMessage(const data::WsReceive& bundle) {
     auto data = bundle.data;
     auto typedEndpoint = bundle.dst;
 
-    // Get cdr buffer size from first 4 bytes
-    uint32_t size;
-    const uint8_t BYTES_OF_SIZE = sizeof(size);
-    memcpy(&size, &data.front(), BYTES_OF_SIZE);
-    size = ntohl(size);
-
     auto [topic, type] = splitEndpointAndType(typedEndpoint);
     switch (type) {
         case DtnMsgType::TOPIC: {
-            std::vector<uint8_t> buffer(data.begin() + BYTES_OF_SIZE, data.end());
-            topics.onDtnMessage(topic, buffer, size);
+            // std::vector<uint8_t> buffer(data.begin() + BYTES_OF_SIZE, data.end());
+            topics.onDtnMessage(topic, data, data.size());
         } break;
         case DtnMsgType::REQUEST: {
-            std::vector<uint8_t> buffer(data.begin() + BYTES_OF_SIZE + SIZE_OF_HEADER_ID,
-                                        data.end());
+            std::vector<uint8_t> buffer(data.begin() + SIZE_OF_HEADER_ID, data.end());
             uint8_t headerId;
-            memcpy(&headerId, &data.front() + BYTES_OF_SIZE, SIZE_OF_HEADER_ID);
-            services.onDtnRequest(topic, buffer, size, headerId);
+            memcpy(&headerId, &data.front(), SIZE_OF_HEADER_ID);
+            services.onDtnRequest(topic, buffer, buffer.size(), headerId);
         } break;
         case DtnMsgType::RESPONSE: {
-            std::vector<uint8_t> buffer(data.begin() + BYTES_OF_SIZE + SIZE_OF_HEADER_ID,
-                                        data.end());
+            std::vector<uint8_t> buffer(data.begin() + SIZE_OF_HEADER_ID, data.end());
             uint8_t headerId;
-            memcpy(&headerId, &data.front() + BYTES_OF_SIZE, SIZE_OF_HEADER_ID);
-            services.onDtnResponse(topic, buffer, size, headerId);
+            memcpy(&headerId, &data.front(), SIZE_OF_HEADER_ID);
+            services.onDtnResponse(topic, buffer, buffer.size(), headerId);
         } break;
         case DtnMsgType::INVALID:
         default:
