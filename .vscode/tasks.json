@@ -8,7 +8,7 @@
             "label": "build",
             "detail": "Build workspace (default)",
             "type": "shell",
-            "command": "colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_EXPORT_COMPILE_COMMANDS=On -Wall -Wextra -Wpedantic",
+            "command": "MAKEFLAGS='-j6 -l6' colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_EXPORT_COMPILE_COMMANDS=On -Wall -Wextra -Wpedantic",
             "options": {
                 "env": {
                     "BUILD_TYPE": "RelWithDebInfo"
@@ -37,7 +37,7 @@
             "label": "debug",
             "detail": "Build workspace (debug)",
             "type": "shell",
-            "command": "colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_EXPORT_COMPILE_COMMANDS=On -Wall -Wextra -Wpedantic",
+            "command": "MAKEFLAGS='-j6 -l6' colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_EXPORT_COMPILE_COMMANDS=On -Wall -Wextra -Wpedantic",
             "options": {
                 "env": {
                     "BUILD_TYPE": "Debug"
@@ -97,7 +97,7 @@
             "label": "clean",
             "detail": "Run the clean target",
             "type": "shell",
-            "command": "colcon build --cmake-clean-cache --cmake-target clean",
+            "command": "colcon build --cmake-clean-cache --cmake-target clean && make -C ${workspaceFolder}/src/dtn_proxy/external/data-compressor/DataCompressor/build/gcc/ clean",
             "options": {
                 "shell": {
                     "args": [
