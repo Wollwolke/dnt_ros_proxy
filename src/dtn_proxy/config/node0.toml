@@ -20,11 +20,13 @@ lifetime = 5
 # Topics to subscribe to
 sub = [
     ["/temperature", "sensor_msgs/msg/Temperature", "test"],
-    ["/humidity", "sensor_msgs/msg/RelativeHumidity"]
+    ["/humidity", "sensor_msgs/msg/RelativeHumidity"],
+    ["/detectedImages", "sensor_msgs/msg/Image", "img",],
     ]
 
 # Topics to publish
 pub = [
+    ["/detectedImages", "sensor_msgs/msg/Image", "imde"],
     ["/temperature", "sensor_msgs/msg/Temperature", "de"],
     ]
 
@@ -60,4 +62,26 @@ name = "de"
 
     [[profile.module]]
     name = "Decompress"
+    params = []
+
+    # [[profile.module]]
+    # name = "ImageDecompress"
+    # params = []
+
+[[profile]]
+name = "imde"
+
+    # [[profile.module]]
+    # name = "Decompress"
+    # params = []
+
+    [[profile.module]]
+    name = "ImageDecompress"
+    params = []
+
+[[profile]]
+name = "img"
+
+    [[profile.module]]
+    name = "ImageCompress"
     params = []
