@@ -45,13 +45,26 @@ target_compile_definitions(dtnproxy PRIVATE ASIO_STANDALONE)
 target_include_directories(dtnproxy PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/external/cpp-httplib
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/lodepng
   ${CMAKE_CURRENT_SOURCE_DIR}/external/toml11
-  ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp)
+
+# lodepng
+add_library(lodepng STATIC ${CMAKE_CURRENT_SOURCE_DIR}/external/lodepng/lodepng.cpp)
+target_link_libraries(dtnproxy lodepng)
+target_compile_options(lodepng PRIVATE -O3)
+
+# data-compressor
+add_custom_target(dataCompressor
+  COMMAND $(MAKE) -C ${CMAKE_CURRENT_SOURCE_DIR}/external/data-compressor/DataCompressor/DCLib/build/gcc/
+)
+add_dependencies(dtnproxy dataCompressor)
+
+target_include_directories(dtnproxy PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/external/data-compressor/DataCompressor/DCLib/inc
   ${CMAKE_CURRENT_SOURCE_DIR}/external/data-compressor/DataCompressor/DCIOLib/inc
   ${CMAKE_CURRENT_SOURCE_DIR}/external/data-compressor/DataCompressor/common/inc)
 
-# data-compressor
 target_link_libraries(
   dtnproxy
   ${CMAKE_CURRENT_SOURCE_DIR}/external/data-compressor/DataCompressor/build/gcc/DCLib.a

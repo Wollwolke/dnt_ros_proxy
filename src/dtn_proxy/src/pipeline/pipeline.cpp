@@ -4,6 +4,8 @@
 #include <memory>
 
 #include "pipeline/action_interface.hpp"
+#include "pipeline/image_compression.hpp"
+#include "pipeline/image_decompression.hpp"
 #include "pipeline/logging.hpp"
 #include "pipeline/lzmh_decoding.hpp"
 #include "pipeline/lzmh_encoding.hpp"
@@ -33,6 +35,12 @@ void Pipeline::initPipeline(const PipelineConfig& config, const std::string& pro
                 break;
             case Module::DECOMPRESS:
                 mod = std::make_unique<LzmhDecodingAction>(msgType);
+                break;
+            case Module::IMG_COMPRESS:
+                mod = std::make_unique<ImageCompressionAction>(msgType);
+                break;
+            case Module::IMG_DECOMPRESS:
+                mod = std::make_unique<ImageDecompressionAction>(msgType);
                 break;
         }
         // Check if module should run when msg enters / leaves proxy
