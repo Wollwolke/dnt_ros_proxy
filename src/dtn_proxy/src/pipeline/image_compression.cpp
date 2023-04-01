@@ -4,18 +4,11 @@
 
 #include <cstdint>
 #include <iostream>
+#include <rclcpp/serialization.hpp>
+#include <sensor_msgs/msg/image.hpp>
 #include <string>
 
-#include "ros/ros_message.hpp"
-
 namespace dtnproxy::pipeline {
-
-void ImageCompressionAction::getByteVector(const ros2_babel_fish::ArrayMessageBase &message,
-                                           std::vector<uint8_t> &result) {
-    for (size_t i = 0; i < message.size(); ++i) {
-        result.push_back(message.as<ros2_babel_fish::ArrayMessage<uint8_t>>()[i]);
-    }
-}
 
 ImageCompressionAction::ImageCompressionAction(const std::string &msgType) {
     active = (supportedMsgType == msgType);
@@ -30,24 +23,14 @@ bool ImageCompressionAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg)
         return true;
     }
 
-    ros::RosMessage rosMsg(msg, supportedMsgType);
-    auto fishMsg = ros2_babel_fish::CompoundMessage(*rosMsg.msgTypeSupport, rosMsg.data);
+    using MessageT = sensor_msgs::msg::Image;
+    MessageT imageMsg;
+    auto serializer = rclcpp::Serialization<MessageT>();
+    serializer.deserialize_message(msg.get(), &imageMsg);
 
-    std::vector<uint8_t> data;
-    getByteVector(fishMsg["data"].as<ros2_babel_fish::ArrayMessageBase>(), data);
-    const auto encoding = fishMsg["encoding"].value<std::string>();
-    const auto width = fishMsg["width"].value<uint32_t>();
-    const auto height = fishMsg["height"].value<uint32_t>();
-    const auto frame_id = fishMsg["header"]["frame_id"].value<std::string>();
-    const auto stampSec = fishMsg["header"]["stamp"]["sec"].value<int32_t>();
-    const auto stampNanosec = fishMsg["header"]["stamp"]["nanosec"].value<uint32_t>();
-
-    // endiness is beeing ignored right now, as only RGB8 encoded images are supported
-    // const auto isBigendian = fishMsg["is_bigendian"].value<uint8_t>();
-
-    if ("rgb8" != encoding) {
-        std::cout << "ImageCompression: Image not compressed, unsuported encoding " << encoding
-                  << std::endl;
+    if ("rgb8" != imageMsg.encoding) {
+        std::cout << "ImageCompression: Image not compressed, unsuported encoding "
+                  << imageMsg.encoding << std::endl;
         return false;
     }
 
@@ -57,17 +40,17 @@ bool ImageCompressionAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg)
     state.info_raw.bitdepth = BIT_DEPTH;
 
     // add ros header as png text chunks
-    lodepng_add_text(&state.info_png, "f", frame_id.c_str());
-    lodepng_add_text(&state.info_png, "s", std::to_string(stampSec).c_str());
-    lodepng_add_text(&state.info_png, "n", std::to_string(stampNanosec).c_str());
+    lodepng_add_text(&state.info_png, "f", imageMsg.header.frame_id.c_str());
+    lodepng_add_text(&state.info_png, "s", std::to_string(imageMsg.header.stamp.sec).c_str());
+    lodepng_add_text(&state.info_png, "n", std::to_string(imageMsg.header.stamp.nanosec).c_str());
 
     // optimize for a tradeoff of compression & speed
     state.encoder.filter_palette_zero = 0;
-    state.encoder.add_id = false;
+    state.encoder.add_id = 0;
     state.encoder.zlibsettings.nicematch = 258;  // stop searching if >= this length found. Set to
                                                  // 258 for best compression. Default: 128
 
-    auto error = lodepng::encode(png, data, width, height, state);
+    auto error = lodepng::encode(png, imageMsg.data, imageMsg.width, imageMsg.height, state);
 
     if (error != 0) {
         std::cout << "ImageCompression: Image not compressed, encoder error " << error << ": "

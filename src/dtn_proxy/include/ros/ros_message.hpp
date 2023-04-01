@@ -22,6 +22,7 @@ public:
     std::shared_ptr<void> data;
     rclcpp::SerializedMessage serializedMsg;
 
+    // TODO: cleanup ⬇
     RosMessage(std::shared_ptr<rclcpp::SerializedMessage> msg, const std::string& msgType);
     RosMessage(std::shared_ptr<void> msg, const std::string& msgType);
     ~RosMessage();

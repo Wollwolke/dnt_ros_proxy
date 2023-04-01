@@ -1,9 +1,7 @@
 #pragma once
 
-#include <cstdint>
 #include <memory>
 #include <rclcpp/serialized_message.hpp>
-#include <ros2_babel_fish/babel_fish.hpp>
 #include <string>
 #include <vector>
 
@@ -19,9 +17,6 @@ private:
     const Direction dir = Direction::IN;
 
     bool active = true;
-
-    static void getByteVector(const ros2_babel_fish::ArrayMessageBase &message,
-                              std::vector<uint8_t> &result);
 
 public:
     ImageCompressionAction(const std::string &msgType);

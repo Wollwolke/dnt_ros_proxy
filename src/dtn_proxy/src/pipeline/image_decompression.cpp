@@ -7,11 +7,8 @@
 #include <iostream>
 #include <memory>
 #include <rclcpp/serialization.hpp>
-#include <ros2_babel_fish/babel_fish.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <vector>
-
-#include "ros/ros_message.hpp"
 
 namespace dtnproxy::pipeline {
 
@@ -56,10 +53,6 @@ bool ImageDecompressionAction::run(std::shared_ptr<rclcpp::SerializedMessage> ms
     auto step = image.size() / height;
 
     // build ROS msg
-    auto fish = ros2_babel_fish::BabelFish();
-    auto fishMsg = fish.create_message(supportedMsgType);
-    auto& compound = fishMsg;
-
     auto imageMsg = std::make_shared<sensor_msgs::msg::Image>();
 
     // Fill header
@@ -73,19 +66,6 @@ bool ImageDecompressionAction::run(std::shared_ptr<rclcpp::SerializedMessage> ms
         }
     }
 
-    compound["height"] = height;
-    compound["width"] = width;
-    compound["encoding"] = ENCODING;
-    compound["is_bigendian"] = 0;
-    compound["step"] = step;
-    auto& test = compound["data"].as<ros2_babel_fish::ArrayMessageBase>();
-
-    for (auto& b : image) {
-        test.as<ros2_babel_fish::ArrayMessage<uint8_t>>().append(b);
-    }
-
-    auto test2 = fishMsg.type_erased_message();
-
     imageMsg->height = height;
     imageMsg->width = width;
     imageMsg->encoding = ENCODING;
@@ -93,12 +73,10 @@ bool ImageDecompressionAction::run(std::shared_ptr<rclcpp::SerializedMessage> ms
     imageMsg->step = step;
     imageMsg->data = image;
 
-    ros::RosMessage rosMsg(test2, supportedMsgType);
-    // static rclcpp::Serialization<sensor_msgs::msg::Image> serializer;
-    // serializer.serialize_message(test2.get(), &serializedMsg);
+    static rclcpp::Serialization<sensor_msgs::msg::Image> serializer;
+    serializer.serialize_message(imageMsg.get(), &serializedMsg);
 
-    *msg = rosMsg.serializedMsg.get_rcl_serialized_message();
-    // serializedMsg.get_rcl_serialized_message();
+    *msg = serializedMsg.get_rcl_serialized_message();
 
     return true;
 }
