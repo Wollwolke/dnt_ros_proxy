@@ -42,9 +42,16 @@ bool LzmhEncodingAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg) {
 
     // Read compressed data
     SetBitFileBufferMode(bbOut, FBM_READING);
-    auto compressedSize = GetActualFileSize(fbOut);
-    msg->reserve(compressedSize);
-    ReadFileBuffer(fbOut, msg->get_rcl_serialized_message().buffer, compressedSize);
+    io_int_t bytes;
+    uint8_t bits;
+    GetActualBitFileSize(bbOut, &bytes, &bits);
+
+    auto bitsToRead = bytes * BITS_IN_BYTE + bits;
+    auto bytesToReserve = bytes + (bits == 0 ? 0 : 1);
+
+    msg->reserve(bytesToReserve);
+    auto ret = ReadBitFileBuffer(bbOut, msg->get_rcl_serialized_message().buffer, bitsToRead);
+
 
     // Destroy BitFileBuffer
     UninitBitFileBuffer(bbIn);

@@ -11,6 +11,7 @@ namespace dtnproxy::pipeline {
 
 class LzmhEncodingAction : public IAction {
 private:
+    static constexpr auto BITS_IN_BYTE = 8;
     const uint SEQUENCE_NR = 100;
     const Direction dir = Direction::IN;
 

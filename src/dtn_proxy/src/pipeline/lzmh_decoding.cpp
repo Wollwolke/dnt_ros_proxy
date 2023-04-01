@@ -45,16 +45,24 @@ bool LzmhDecodingAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg) {
 
     // Read decompressed data
     SetBitFileBufferMode(bbOut, FBM_READING);
-    auto decompressedSize = GetActualFileSize(fbOut);
-    std::vector<uint8_t> buffer(decompressedSize);
+    io_int_t bytes;
+    uint8_t bits;
+    GetActualBitFileSize(bbOut, &bytes, &bits);
+
+    auto bitsToRead = bytes * BITS_IN_BYTE + bits;
+    auto bytesToReserve = bytes + (bits == 0 ? 0 : 1);
+
+    std::vector<uint8_t> buffer(bytesToReserve);
+
+    auto ret = ReadBitFileBuffer(bbOut, &buffer.front(), bitsToRead);
 
     ReadFileBuffer(fbOut, &buffer.front(), decompressedSize);
 
     rcl_serialized_message_t newMsg{
-        &buffer.front(),                        // buffer
-        static_cast<size_t>(decompressedSize),  // buffer_length
-        static_cast<size_t>(decompressedSize),  // buffer_capacity
-        rcl_get_default_allocator()             // allocator
+        &buffer.front(),                      // buffer
+        static_cast<size_t>(bytesToReserve),  // buffer_length
+        static_cast<size_t>(bytesToReserve),  // buffer_capacity
+        rcl_get_default_allocator()           // allocator
     };
 
     *msg = newMsg;
