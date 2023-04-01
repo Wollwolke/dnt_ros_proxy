@@ -28,33 +28,6 @@ void TopicManager::topicCallback(const std::string& topic, const std::string& ty
     }
 }
 
-// TODO: Use this dynamic type support stuff to get the header...
-// void topic_callback(std::shared_ptr<rclcpp::SerializedMessage> msg) {
-//     using MessageT = geometry_msgs::msg::PoseStamped;
-//     MessageT string_msg;
-
-// auto msg_type = "geometry_msgs/msg/PoseStamped";
-// auto lib = rosbag2_cpp::get_typesupport_library(msg_type, "rosidl_typesupport_cpp");
-// auto typesupport =
-//     rosbag2_cpp::get_typesupport_handle(msg_type, "rosidl_typesupport_cpp", lib);
-
-//     auto cap = msg->capacity();
-//     auto size = msg->size();
-//     auto test = msg->get_rcl_serialized_message();
-// auto serializer = rclcpp::SerializationBase(typesupport);
-//     serializer.deserialize_message(msg.get(), &string_msg);
-//     auto header_timestamp =
-//         message_filters::message_traits::HasHeader<MessageT>::value;
-//     RCLCPP_INFO(this->get_logger(), "I heard: %s",
-//     string_msg.data.c_str());
-// }
-
-// void test(std::string type) {
-//     auto lib = rosbag2_cpp::get_typesupport_library(type, "rosidl_typesupport_cpp");
-//     auto typesupport = rosbag2_cpp::get_typesupport_handle(type,
-//     "rosidl_typesupport_cpp", lib);
-// }
-
 TopicManager::TopicManager(rclcpp::Node& nodeHandle, conf::RosConfig config,
                            std::shared_ptr<DtndClient> dtn, const std::unique_ptr<Logger>& log)
     : ManagerBase(nodeHandle, config, dtn, log) {}
