@@ -11,8 +11,9 @@
 
   <depend>asio</depend>
   <depend>rclcpp</depend>
-  <depend>rosbag2_cpp</depend>
-  <depend>rosidl_typesupport_introspection_cpp</depend>
+  <depend>sensor_msgs</depend>
+  
+  <build_depend>ros2_babel_fish</build_depend>
 
   <exec_depend>ros2launch</exec_depend>
 
