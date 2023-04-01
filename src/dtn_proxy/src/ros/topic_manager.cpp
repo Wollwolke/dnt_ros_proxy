@@ -83,7 +83,7 @@ void TopicManager::initPublisher() {
     auto qos = rclcpp::QoS(10);
 
     for (const auto& [topic, type, profile] : config.pubTopics) {
-        pipeline::Pipeline pipeline(pipeline::Direction::OUT);
+        pipeline::Pipeline pipeline(pipeline::Direction::OUT, type);
         pipeline.initPipeline(config.profiles, profile);
 
         auto pubTopic = prefixTopic(topic, false);
@@ -99,7 +99,7 @@ void TopicManager::initSubscriber() {
     auto qos = rclcpp::QoS(10);
 
     for (const auto& [topic, type, profile] : config.subTopics) {
-        pipeline::Pipeline pipeline(pipeline::Direction::IN);
+        pipeline::Pipeline pipeline(pipeline::Direction::IN, type);
         pipeline.initPipeline(config.profiles, profile);
 
         auto cb = std::bind(&TopicManager::topicCallback, this, topic, type, std::placeholders::_1);

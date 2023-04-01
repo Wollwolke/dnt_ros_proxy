@@ -1,6 +1,7 @@
 #include "pipeline/lzmh_decoding.hpp"
 
-#include <rclcpp/serialized_message.hpp>
+#include <cstdint>
+#include <iostream>
 #include <vector>
 
 extern "C" {
@@ -11,10 +12,11 @@ extern "C" {
 
 namespace dtnproxy::pipeline {
 
-LzmhDecodingAction::LzmhDecodingAction() {
+LzmhDecodingAction::LzmhDecodingAction(const std::string &msgType) {
     fbIn = AllocateFileBuffer();
     fbOut = AllocateFileBuffer();
     options.error_log_file = stderr;
+    active = !(unSupportedMsgType == msgType);
 }
 
 LzmhDecodingAction::~LzmhDecodingAction() {
@@ -27,6 +29,10 @@ Direction LzmhDecodingAction::direction() { return dir; }
 uint LzmhDecodingAction::order() { return SEQUENCE_NR; }
 
 bool LzmhDecodingAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg) {
+    if (!active) {
+        return true;
+    }
+
     auto cdrMsg = msg->get_rcl_serialized_message();
 
     InitFileBufferInMemory(fbIn, FBM_WRITING, cdrMsg.buffer_length);
@@ -56,7 +62,10 @@ bool LzmhDecodingAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg) {
 
     auto ret = ReadBitFileBuffer(bbOut, &buffer.front(), bitsToRead);
 
-    ReadFileBuffer(fbOut, &buffer.front(), decompressedSize);
+    if (ret != bitsToRead) {
+        std::cout << "LZMH Decompression: 💥 Error reading decompressed data." << std::endl;
+        return false;
+    }
 
     rcl_serialized_message_t newMsg{
         &buffer.front(),                      // buffer

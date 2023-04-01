@@ -1,5 +1,7 @@
 #include "pipeline/lzmh_encoding.hpp"
 
+#include <iostream>
+
 extern "C" {
 #include "bit_file_buffer.h"
 #include "file_buffer.h"
@@ -8,10 +10,11 @@ extern "C" {
 
 namespace dtnproxy::pipeline {
 
-LzmhEncodingAction::LzmhEncodingAction() {
+LzmhEncodingAction::LzmhEncodingAction(const std::string &msgType) {
     fbIn = AllocateFileBuffer();
     fbOut = AllocateFileBuffer();
     options.error_log_file = stderr;
+    active = !(unSupportedMsgType == msgType);
 }
 
 LzmhEncodingAction::~LzmhEncodingAction() {
@@ -24,6 +27,10 @@ Direction LzmhEncodingAction::direction() { return dir; }
 uint LzmhEncodingAction::order() { return SEQUENCE_NR; }
 
 bool LzmhEncodingAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg) {
+    if (!active) {
+        return true;
+    }
+
     auto cdrMsg = msg->get_rcl_serialized_message();
 
     InitFileBufferInMemory(fbIn, FBM_WRITING, cdrMsg.buffer_length);
@@ -52,6 +59,10 @@ bool LzmhEncodingAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg) {
     msg->reserve(bytesToReserve);
     auto ret = ReadBitFileBuffer(bbOut, msg->get_rcl_serialized_message().buffer, bitsToRead);
 
+    if (ret != bitsToRead) {
+        std::cout << "LZMH Decompression: 💥 Error reading compressed data." << std::endl;
+        return false;
+    }
 
     // Destroy BitFileBuffer
     UninitBitFileBuffer(bbIn);

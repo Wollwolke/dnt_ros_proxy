@@ -12,7 +12,7 @@
 
 namespace dtnproxy::pipeline {
 
-Pipeline::Pipeline(Direction dir) : direction(dir) {}
+Pipeline::Pipeline(Direction dir, std::string msgType) : msgType(msgType), direction(dir) {}
 
 void Pipeline::initPipeline(const PipelineConfig& config, const std::string& profile) {
     if (profile.empty()) {
@@ -29,10 +29,10 @@ void Pipeline::initPipeline(const PipelineConfig& config, const std::string& pro
                 mod = std::make_unique<LoggingAction>();
                 break;
             case Module::COMPRESS:
-                mod = std::make_unique<LzmhEncodingAction>();
+                mod = std::make_unique<LzmhEncodingAction>(msgType);
                 break;
             case Module::DECOMPRESS:
-                mod = std::make_unique<LzmhDecodingAction>();
+                mod = std::make_unique<LzmhDecodingAction>(msgType);
                 break;
         }
         // Check if module should run when msg enters / leaves proxy
