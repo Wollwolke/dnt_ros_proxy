@@ -57,6 +57,10 @@ name = "test"
     name = "Compress"
     params = []
 
+    [[profile.module]]
+    name = "Expire"
+    params = []
+
 [[profile]]
 name = "de"
 

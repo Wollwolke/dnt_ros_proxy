@@ -105,9 +105,9 @@ void DtndClient::sendMessage(const Message& dtnMsg) {
     data::WsSend msg{
         localNodeId,                                // std::string src,
         config.remoteNodeId + "/" + typedEndpoint,  // std::string dst,
-        dtnMsg.expireOlderBundles,                  // bool delivery_notification,
+        false,                                      // bool delivery_notification,
         lifetime * MS_IN_SECOND,                    // uint64_t lifetime,
-        false,                                      // bool expire_older,
+        dtnMsg.expireOlderBundles,                  // bool expire_older,
         dtnMsg.payload,                             // std::vector<uint8_t>& data,
     };
     nlohmann::json jsonMsg = msg;

@@ -8,7 +8,7 @@
             "label": "build",
             "detail": "Build workspace (default)",
             "type": "shell",
-            "command": "MAKEFLAGS='-j6 -l6' colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_EXPORT_COMPILE_COMMANDS=On -Wall -Wextra -Wpedantic",
+            "command": "MAKEFLAGS='-j6 -l6' colcon build --cmake-force-configure --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_EXPORT_COMPILE_COMMANDS=On -Wall -Wextra -Wpedantic",
             "options": {
                 "env": {
                     "BUILD_TYPE": "RelWithDebInfo"

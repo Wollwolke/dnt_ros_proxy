@@ -11,12 +11,15 @@ enum Module {
     DECOMPRESS,
     IMG_COMPRESS,
     IMG_DECOMPRESS,
+    EXPIRE,
 };
 
-const std::map<std::string, Module> moduleMapping{
-    {"RateLimit", Module::RATE_LIMIT},       {"Logging", Module::LOGGING},
-    {"Compress", Module::COMPRESS},          {"Decompress", Module::DECOMPRESS},
-    {"ImageCompress", Module::IMG_COMPRESS}, {"ImageDecompress", Module::IMG_DECOMPRESS},
-};
+const std::map<std::string, Module> moduleMapping{{"RateLimit", Module::RATE_LIMIT},
+                                                  {"Logging", Module::LOGGING},
+                                                  {"Compress", Module::COMPRESS},
+                                                  {"Decompress", Module::DECOMPRESS},
+                                                  {"ImageCompress", Module::IMG_COMPRESS},
+                                                  {"ImageDecompress", Module::IMG_DECOMPRESS},
+                                                  {"Expire", Module::EXPIRE}};
 
 }  // namespace dtnproxy::pipeline

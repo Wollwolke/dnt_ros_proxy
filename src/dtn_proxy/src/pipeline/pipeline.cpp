@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "pipeline/action_interface.hpp"
+#include "pipeline/expire_bundles.hpp"
 #include "pipeline/image_compression.hpp"
 #include "pipeline/image_decompression.hpp"
 #include "pipeline/logging.hpp"
@@ -42,6 +43,9 @@ void Pipeline::initPipeline(const PipelineConfig& config, const std::string& pro
                 break;
             case Module::IMG_DECOMPRESS:
                 mod = std::make_unique<ImageDecompressionAction>(msgType);
+                break;
+            case Module::EXPIRE:
+                mod = std::make_unique<ExpireBundlesAction>();
                 break;
         }
         // Check if module should run when msg enters / leaves proxy
