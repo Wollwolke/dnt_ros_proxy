@@ -1,6 +1,7 @@
 #pragma once
 #include <httplib.h>
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -47,16 +48,23 @@ private:
     void buildEndpointId(std::string& endpoint, ros::DtnMsgType type);
 
 public:
+    using Message = struct Message {
+        std::vector<uint8_t> payload;
+        std::string endpoint;
+        ros::DtnMsgType msgType;
+        uint64_t lifetime = 0;
+        bool expireOlderBundles = false;
+    };
+
     explicit DtndClient(const conf::DtnConfig& config);
 
     void setMessageHandler(messageHandler_t h);
 
-    void onConnectionStatus(const bool success);
+    void onConnectionStatus(bool success);
     void onBundle(const std::string& bundle);
 
     bool connect(const std::vector<DtnEndpoint>& endpoints);
-    void sendMessage(const std::vector<uint8_t>& payload, const std::string& endpoint,
-                     ros::DtnMsgType type);
+    void sendMessage(const Message& dtnMsg);
 };
 
 }  // namespace dtnproxy

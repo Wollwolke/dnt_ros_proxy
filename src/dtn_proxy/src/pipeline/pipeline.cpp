@@ -10,6 +10,7 @@
 #include "pipeline/lzmh_decoding.hpp"
 #include "pipeline/lzmh_encoding.hpp"
 #include "pipeline/modules.hpp"
+#include "pipeline/pipeline_msg.hpp"
 #include "pipeline/rate_limit.hpp"
 
 namespace dtnproxy::pipeline {
@@ -53,9 +54,9 @@ void Pipeline::initPipeline(const PipelineConfig& config, const std::string& pro
               [](auto& first, auto& second) { return first->order() < second->order(); });
 }
 
-bool Pipeline::run(std::shared_ptr<rclcpp::SerializedMessage> msg) {
+bool Pipeline::run(PipelineMessage& pMsg) {
     for (auto& action : actions) {
-        if (!action->run(msg)) {
+        if (!action->run(pMsg)) {
             return false;
         }
     }

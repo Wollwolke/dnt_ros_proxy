@@ -9,8 +9,8 @@ dtndPort = 3000
 # URI with dtn scheme [string]
 remoteNodeId = "dtn://node1"
 
-# Bundle lifetime in minutes [int]
-lifetime = 5
+# Bundle lifetime in seconds [int]
+lifetime = 300
 
 
 [ros]

@@ -29,8 +29,9 @@ void ServiceManager::responseCallback(const std::string& topic, uint8_t requestI
     auto rosMsgSize = buildDtnPayload(payload, response, requestId);
     if (stats) stats->rosReceived(topic, "unknown", rosMsgSize, DtnMsgType::RESPONSE);
 
-    dtn->sendMessage(payload, topic, DtnMsgType::RESPONSE);
-    if (stats) stats->dtnSent(topic, "unknown", payload.size(), DtnMsgType::RESPONSE);
+    DtndClient::Message dtnMsg{std::move(payload), topic, DtnMsgType::RESPONSE};
+    dtn->sendMessage(dtnMsg);
+    if (stats) stats->dtnSent(topic, "unknown", dtnMsg.payload.size(), DtnMsgType::RESPONSE);
 }
 
 void ServiceManager::requestCallback(const std::string& topic, const std::string& type,
@@ -47,8 +48,9 @@ void ServiceManager::requestCallback(const std::string& topic, const std::string
     auto rosMsgSize = buildDtnPayload(payload, request, reqId);
     if (stats) stats->rosReceived(topic, type, rosMsgSize, DtnMsgType::REQUEST);
 
-    dtn->sendMessage(payload, topic, DtnMsgType::REQUEST);
-    if (stats) stats->dtnSent(topic, type, payload.size(), DtnMsgType::REQUEST);
+    DtndClient::Message dtnMsg{std::move(payload), topic, DtnMsgType::REQUEST};
+    dtn->sendMessage(dtnMsg);
+    if (stats) stats->dtnSent(topic, type, dtnMsg.payload.size(), DtnMsgType::REQUEST);
 }
 
 ServiceManager::ServiceManager(rclcpp::Node& nodeHandle, conf::RosConfig config,

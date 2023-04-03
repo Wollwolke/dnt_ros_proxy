@@ -7,6 +7,7 @@
 
 #include "configuration.hpp"
 #include "pipeline/action_interface.hpp"
+#include "pipeline_msg.hpp"
 
 namespace dtnproxy::pipeline {
 
@@ -22,7 +23,7 @@ public:
     Pipeline(Direction dir, std::string msgType);
 
     void initPipeline(const PipelineConfig& config, const std::string& profile);
-    bool run(std::shared_ptr<rclcpp::SerializedMessage> msg);
+    bool run(PipelineMessage& pMsg);
 };
 
 }  // namespace dtnproxy::pipeline

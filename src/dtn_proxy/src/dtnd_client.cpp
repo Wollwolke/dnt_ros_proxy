@@ -94,19 +94,21 @@ bool DtndClient::connect(const std::vector<DtnEndpoint>& endpoints) {
     }
 }
 
-void DtndClient::sendMessage(const std::vector<uint8_t>& payload, const std::string& endpoint,
-                             ros::DtnMsgType type) {
-    const auto MS_IN_MINUTE = 60 * 1000;
+void DtndClient::sendMessage(const Message& dtnMsg) {
+    const auto MS_IN_SECOND = 60 * 1000;
 
-    auto typedEndpoint = endpoint;
-    buildEndpointId(typedEndpoint, type);
+    auto typedEndpoint = dtnMsg.endpoint;
+    buildEndpointId(typedEndpoint, dtnMsg.msgType);
+
+    auto lifetime = (dtnMsg.lifetime == 0) ? config.lifetime : dtnMsg.lifetime;
 
     data::WsSend msg{
         localNodeId,                                // std::string src,
         config.remoteNodeId + "/" + typedEndpoint,  // std::string dst,
-        false,                                      // bool delivery_notification,
-        config.lifetime * MS_IN_MINUTE,             // uint64_t lifetime,
-        payload,                                    // std::vector<uint8_t>& data,
+        dtnMsg.expireOlderBundles,                  // bool delivery_notification,
+        lifetime * MS_IN_SECOND,                    // uint64_t lifetime,
+        false,                                      // bool expire_older,
+        dtnMsg.payload,                             // std::vector<uint8_t>& data,
     };
     nlohmann::json jsonMsg = msg;
     std::vector<uint8_t> cborMsg = nlohmann::json::to_cbor(jsonMsg);

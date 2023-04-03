@@ -14,7 +14,7 @@ void ManagerBase::setStatsRecorder(std::shared_ptr<StatsRecorder> statsRecorder)
     stats = statsRecorder;
 }
 
-uint32_t ManagerBase::getRosMsgSize(std::shared_ptr<const rclcpp::SerializedMessage> msg) const {
+uint32_t ManagerBase::getRosMsgSize(const std::shared_ptr<rclcpp::SerializedMessage>& msg) const {
     auto rosBufferSize = static_cast<uint32_t>(msg->get_rcl_serialized_message().buffer_length);
     return rosBufferSize + CDR_MSG_SIZE_OFFSET;
 }

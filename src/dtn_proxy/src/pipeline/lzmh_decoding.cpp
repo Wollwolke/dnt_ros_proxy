@@ -28,12 +28,12 @@ Direction LzmhDecodingAction::direction() { return dir; }
 
 uint LzmhDecodingAction::order() { return SEQUENCE_NR; }
 
-bool LzmhDecodingAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg) {
+bool LzmhDecodingAction::run(PipelineMessage &pMsg) {
     if (!active) {
         return true;
     }
 
-    auto cdrMsg = msg->get_rcl_serialized_message();
+    auto cdrMsg = pMsg.serializedMessage->get_rcl_serialized_message();
 
     InitFileBufferInMemory(fbIn, FBM_WRITING, cdrMsg.buffer_length);
     InitFileBufferInMemory(fbOut, FBM_WRITING, cdrMsg.buffer_length);
@@ -74,7 +74,7 @@ bool LzmhDecodingAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg) {
         rcl_get_default_allocator()           // allocator
     };
 
-    *msg = newMsg;
+    *pMsg.serializedMessage = newMsg;
 
     // Destroy BitFileBuffer
     UninitBitFileBuffer(bbIn);

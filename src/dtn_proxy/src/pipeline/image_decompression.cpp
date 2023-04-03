@@ -20,12 +20,12 @@ Direction ImageDecompressionAction::direction() { return dir; }
 
 uint ImageDecompressionAction::order() { return SEQUENCE_NR; }
 
-bool ImageDecompressionAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg) {
+bool ImageDecompressionAction::run(PipelineMessage& pMsg) {
     if (!active) {
         return true;
     }
 
-    auto cdrMsg = msg->get_rcl_serialized_message();
+    auto cdrMsg = pMsg.serializedMessage->get_rcl_serialized_message();
 
     // setup decoder
     lodepng::State state;
@@ -76,7 +76,7 @@ bool ImageDecompressionAction::run(std::shared_ptr<rclcpp::SerializedMessage> ms
     static rclcpp::Serialization<sensor_msgs::msg::Image> serializer;
     serializer.serialize_message(imageMsg.get(), &serializedMsg);
 
-    *msg = serializedMsg.get_rcl_serialized_message();
+    *pMsg.serializedMessage = serializedMsg.get_rcl_serialized_message();
 
     return true;
 }

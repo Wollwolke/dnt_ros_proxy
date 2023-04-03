@@ -18,7 +18,7 @@ Direction ImageCompressionAction::direction() { return dir; }
 
 uint ImageCompressionAction::order() { return SEQUENCE_NR; }
 
-bool ImageCompressionAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg) {
+bool ImageCompressionAction::run(PipelineMessage& pMsg) {
     if (!active) {
         return true;
     }
@@ -26,7 +26,7 @@ bool ImageCompressionAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg)
     using MessageT = sensor_msgs::msg::Image;
     MessageT imageMsg;
     auto serializer = rclcpp::Serialization<MessageT>();
-    serializer.deserialize_message(msg.get(), &imageMsg);
+    serializer.deserialize_message(pMsg.serializedMessage.get(), &imageMsg);
 
     if ("rgb8" != imageMsg.encoding) {
         std::cout << "ImageCompression: Image not compressed, unsuported encoding "
@@ -58,8 +58,8 @@ bool ImageCompressionAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg)
         return false;
     }
 
-    msg->reserve(png.size());
-    std::move(png.begin(), png.end(), msg->get_rcl_serialized_message().buffer);
+    pMsg.serializedMessage->reserve(png.size());
+    std::move(png.begin(), png.end(), pMsg.serializedMessage->get_rcl_serialized_message().buffer);
 
     return true;
 }

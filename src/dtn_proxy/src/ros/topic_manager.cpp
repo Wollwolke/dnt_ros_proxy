@@ -8,7 +8,9 @@
 #include <utility>
 #include <vector>
 
+#include "dtnd_client.hpp"
 #include "pipeline/pipeline.hpp"
+#include "pipeline/pipeline_msg.hpp"
 #include "ros/dtn_msg_type.hpp"
 
 namespace dtnproxy::ros {
@@ -18,13 +20,16 @@ void TopicManager::topicCallback(const std::string& topic, const std::string& ty
     auto rosMsgSize = getRosMsgSize(msg);
     if (stats) stats->rosReceived(topic, type, rosMsgSize, DtnMsgType::TOPIC);
 
+    pipeline::PipelineMessage pMsg{std::move(msg)};
     // run optimization pipeline before sending msg over DTN
-    if (subscriber.at(topic).second.run(msg)) {
+    if (subscriber.at(topic).second.run(pMsg)) {
         std::vector<uint8_t> payload;
-        buildDtnPayload(payload, msg);
+        buildDtnPayload(payload, pMsg.serializedMessage);
+        DtndClient::Message dtnMsg{std::move(payload), topic, DtnMsgType::TOPIC, pMsg.lifetime,
+                                   pMsg.markExpired};
 
-        dtn->sendMessage(payload, topic, DtnMsgType::TOPIC);
-        if (stats) stats->dtnSent(topic, type, payload.size(), DtnMsgType::TOPIC);
+        dtn->sendMessage(dtnMsg);
+        if (stats) stats->dtnSent(topic, type, dtnMsg.payload.size(), DtnMsgType::TOPIC);
     }
 }
 
@@ -41,13 +46,15 @@ void TopicManager::onDtnMessage(const std::string& topic, std::vector<uint8_t>& 
     };
     auto msg = std::make_shared<rclcpp::SerializedMessage>(cdrMsg);
 
+    pipeline::PipelineMessage pMsg{std::move(msg)};
     // run optimization pipeline before sending ROS msgs
-    if (publisher.at(topic).second.run(msg)) {
-        publisher.at(topic).first->publish(*msg);
+    if (publisher.at(topic).second.run(pMsg)) {
+        publisher.at(topic).first->publish(*pMsg.serializedMessage);
 
         // TODO: find msgType in rosConfig
         if (stats) {
-            stats->rosSent(topic, "unknown", getRosMsgSize(msg), DtnMsgType::TOPIC);
+            stats->rosSent(topic, "unknown", getRosMsgSize(pMsg.serializedMessage),
+                           DtnMsgType::TOPIC);
         }
     }
 }

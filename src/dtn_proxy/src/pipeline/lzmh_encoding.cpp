@@ -26,12 +26,12 @@ Direction LzmhEncodingAction::direction() { return dir; }
 
 uint LzmhEncodingAction::order() { return SEQUENCE_NR; }
 
-bool LzmhEncodingAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg) {
+bool LzmhEncodingAction::run(PipelineMessage &pMsg) {
     if (!active) {
         return true;
     }
 
-    auto cdrMsg = msg->get_rcl_serialized_message();
+    auto cdrMsg = pMsg.serializedMessage->get_rcl_serialized_message();
 
     InitFileBufferInMemory(fbIn, FBM_WRITING, cdrMsg.buffer_length);
     InitFileBufferInMemory(fbOut, FBM_WRITING, cdrMsg.buffer_length);
@@ -56,8 +56,9 @@ bool LzmhEncodingAction::run(std::shared_ptr<rclcpp::SerializedMessage> msg) {
     auto bitsToRead = bytes * BITS_IN_BYTE + bits;
     auto bytesToReserve = bytes + (bits == 0 ? 0 : 1);
 
-    msg->reserve(bytesToReserve);
-    auto ret = ReadBitFileBuffer(bbOut, msg->get_rcl_serialized_message().buffer, bitsToRead);
+    pMsg.serializedMessage->reserve(bytesToReserve);
+    auto ret = ReadBitFileBuffer(bbOut, pMsg.serializedMessage->get_rcl_serialized_message().buffer,
+                                 bitsToRead);
 
     if (ret != bitsToRead) {
         std::cout << "LZMH Decompression: 💥 Error reading compressed data." << std::endl;

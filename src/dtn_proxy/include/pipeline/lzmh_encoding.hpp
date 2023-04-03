@@ -31,7 +31,7 @@ public:
 
     Direction direction() override;
     uint order() override;
-    bool run(std::shared_ptr<rclcpp::SerializedMessage> msg) override;
+    bool run(PipelineMessage& pMsg) override;
 };
 
 }  // namespace dtnproxy::pipeline

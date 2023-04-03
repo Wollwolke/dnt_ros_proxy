@@ -14,6 +14,7 @@ struct WsSend {
     std::string dst;
     bool delivery_notification;
     uint64_t lifetime;
+    bool expire_older;
     std::vector<uint8_t> data;
 };
 
@@ -26,7 +27,8 @@ struct WsReceive {
     std::vector<uint8_t> data;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(WsSend, src, dst, delivery_notification, lifetime, data)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(WsSend, src, dst, delivery_notification, lifetime,
+                                   expire_older, data)
 
 inline void from_json(const nlohmann::json& j, CreationTimestamp& obj) {
     auto tmp = j.get<std::array<uint64_t, 2>>();
