@@ -11,6 +11,7 @@
 #include "pipeline/lzmh_decoding.hpp"
 #include "pipeline/lzmh_encoding.hpp"
 #include "pipeline/modules.hpp"
+#include "pipeline/on_change.hpp"
 #include "pipeline/pipeline_msg.hpp"
 #include "pipeline/rate_limit.hpp"
 
@@ -46,6 +47,9 @@ void Pipeline::initPipeline(const PipelineConfig& config, const std::string& pro
                 break;
             case Module::EXPIRE:
                 mod = std::make_unique<ExpireBundlesAction>();
+                break;
+            case Module::ON_CHANGE:
+                mod = std::make_unique<OnChangeAction>(msgType);
                 break;
         }
         // Check if module should run when msg enters / leaves proxy

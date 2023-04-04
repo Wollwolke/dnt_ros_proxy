@@ -61,6 +61,10 @@ name = "test"
     name = "Expire"
     params = []
 
+    [[profile.module]]
+    name = "OnChange"
+    params = []
+
 [[profile]]
 name = "de"
 
