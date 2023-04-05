@@ -13,6 +13,8 @@ enum Module {
     IMG_DECOMPRESS,
     EXPIRE,
     ON_CHANGE,
+    COMBINE,
+    SPLIT,
 };
 
 const std::map<std::string, Module> moduleMapping{{"RateLimit", Module::RATE_LIMIT},
@@ -22,6 +24,8 @@ const std::map<std::string, Module> moduleMapping{{"RateLimit", Module::RATE_LIM
                                                   {"ImageCompress", Module::IMG_COMPRESS},
                                                   {"ImageDecompress", Module::IMG_DECOMPRESS},
                                                   {"Expire", Module::EXPIRE},
-                                                  {"OnChange", Module::ON_CHANGE}};
+                                                  {"OnChange", Module::ON_CHANGE},
+                                                  {"Combine", Module::COMBINE},
+                                                  {"Split", Module::SPLIT}};
 
 }  // namespace dtnproxy::pipeline

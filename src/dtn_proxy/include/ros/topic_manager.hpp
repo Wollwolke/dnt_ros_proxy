@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp/serialized_message.hpp>
 #include <string>
 #include <utility>
 
@@ -22,6 +23,7 @@ private:
 
     void topicCallback(const std::string& topic, const std::string& type,
                        std::shared_ptr<rclcpp::SerializedMessage> msg);
+    void dtnMsgCallback(const std::string& topic, std::shared_ptr<rclcpp::SerializedMessage> msg);
 
 public:
     TopicManager();

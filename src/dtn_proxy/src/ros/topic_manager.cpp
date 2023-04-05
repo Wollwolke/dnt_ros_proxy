@@ -3,7 +3,6 @@
 #include <arpa/inet.h>
 
 #include <memory>
-#include <rclcpp/serialized_message.hpp>
 #include <string>
 #include <utility>
 #include <vector>
@@ -33,19 +32,8 @@ void TopicManager::topicCallback(const std::string& topic, const std::string& ty
     }
 }
 
-TopicManager::TopicManager(rclcpp::Node& nodeHandle, conf::RosConfig config,
-                           std::shared_ptr<DtndClient> dtn, const std::unique_ptr<Logger>& log)
-    : ManagerBase(nodeHandle, config, dtn, log) {}
-
-void TopicManager::onDtnMessage(const std::string& topic, std::vector<uint8_t>& data) {
-    rcl_serialized_message_t cdrMsg{
-        &data.front(),               // buffer
-        data.size(),                 // buffer_length
-        data.size(),                 // buffer_capacity
-        rcl_get_default_allocator()  // allocator
-    };
-    auto msg = std::make_shared<rclcpp::SerializedMessage>(cdrMsg);
-
+void TopicManager::dtnMsgCallback(const std::string& topic,
+                                  std::shared_ptr<rclcpp::SerializedMessage> msg) {
     pipeline::PipelineMessage pMsg{std::move(msg)};
     // run optimization pipeline before sending ROS msgs
     if (publisher.at(topic).second.run(pMsg)) {
@@ -59,12 +47,31 @@ void TopicManager::onDtnMessage(const std::string& topic, std::vector<uint8_t>& 
     }
 }
 
+TopicManager::TopicManager(rclcpp::Node& nodeHandle, conf::RosConfig config,
+                           std::shared_ptr<DtndClient> dtn, const std::unique_ptr<Logger>& log)
+    : ManagerBase(nodeHandle, config, dtn, log) {}
+
+void TopicManager::onDtnMessage(const std::string& topic, std::vector<uint8_t>& data) {
+    rcl_serialized_message_t cdrMsg{
+        &data.front(),               // buffer
+        data.size(),                 // buffer_length
+        data.size(),                 // buffer_capacity
+        rcl_get_default_allocator()  // allocator
+    };
+    auto msg = std::make_shared<rclcpp::SerializedMessage>(cdrMsg);
+    dtnMsgCallback(topic, msg);
+}
+
 void TopicManager::initPublisher() {
     auto qos = rclcpp::QoS(10);
 
+    // callback to inject msgs from other topics
+    auto injectMsgCb = std::bind(&TopicManager::dtnMsgCallback, this, std::placeholders::_1,
+                                 std::placeholders::_2);
+
     for (const auto& [topic, type, profile] : config.pubTopics) {
-        pipeline::Pipeline pipeline(pipeline::Direction::OUT, type);
-        pipeline.initPipeline(config.profiles, profile);
+        pipeline::Pipeline pipeline(pipeline::Direction::OUT, type, topic);
+        pipeline.initPipeline(config.profiles, profile, injectMsgCb);
 
         auto pubTopic = prefixTopic(topic, false);
         publisher.insert_or_assign(
@@ -78,9 +85,12 @@ void TopicManager::initPublisher() {
 void TopicManager::initSubscriber() {
     auto qos = rclcpp::QoS(10);
 
+    // msg store for combining msgs over multiple subscribers
+    auto msgStore = std::make_shared<std::map<std::string, pipeline::PipelineMessage>>();
+
     for (const auto& [topic, type, profile] : config.subTopics) {
-        pipeline::Pipeline pipeline(pipeline::Direction::IN, type);
-        pipeline.initPipeline(config.profiles, profile);
+        pipeline::Pipeline pipeline(pipeline::Direction::IN, type, topic);
+        pipeline.initPipeline(config.profiles, profile, msgStore);
 
         auto cb = std::bind(&TopicManager::topicCallback, this, topic, type, std::placeholders::_1);
 

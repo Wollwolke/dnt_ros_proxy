@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <memory>
+#include <utility>
 
 #include "pipeline/action_interface.hpp"
+#include "pipeline/combine_topics.hpp"
 #include "pipeline/expire_bundles.hpp"
 #include "pipeline/image_compression.hpp"
 #include "pipeline/image_decompression.hpp"
@@ -14,10 +16,12 @@
 #include "pipeline/on_change.hpp"
 #include "pipeline/pipeline_msg.hpp"
 #include "pipeline/rate_limit.hpp"
+#include "pipeline/split_topics.hpp"
 
 namespace dtnproxy::pipeline {
 
-Pipeline::Pipeline(Direction dir, std::string msgType) : msgType(msgType), direction(dir) {}
+Pipeline::Pipeline(Direction dir, std::string msgType, std::string topic)
+    : msgType(std::move(msgType)), topic(std::move(topic)), direction(dir) {}
 
 void Pipeline::initPipeline(const PipelineConfig& config, const std::string& profile) {
     if (profile.empty()) {
@@ -51,6 +55,12 @@ void Pipeline::initPipeline(const PipelineConfig& config, const std::string& pro
             case Module::ON_CHANGE:
                 mod = std::make_unique<OnChangeAction>(msgType);
                 break;
+            case Module::COMBINE:
+                mod = std::make_unique<CombineTopicsAction>(topic, params, msgStore);
+                break;
+            case Module::SPLIT:
+                mod = std::make_unique<SplitTopicsAction>(topic, params, injectMsgCb);
+                break;
         }
         // Check if module should run when msg enters / leaves proxy
         if ((mod->direction() & (this->direction | Direction::INOUT)) != 0) {
@@ -60,6 +70,18 @@ void Pipeline::initPipeline(const PipelineConfig& config, const std::string& pro
 
     std::sort(actions.begin(), actions.end(),
               [](auto& first, auto& second) { return first->order() < second->order(); });
+}
+
+void Pipeline::initPipeline(const PipelineConfig& config, const std::string& profile,
+                            msgStorePtr_t msgStore) {
+    this->msgStore = std::move(msgStore);
+    initPipeline(config, profile);
+}
+
+void Pipeline::initPipeline(const PipelineConfig& config, const std::string& profile,
+                            injectMsgCb_t injectMsgCb) {
+    this->injectMsgCb = std::move(injectMsgCb);
+    initPipeline(config, profile);
 }
 
 bool Pipeline::run(PipelineMessage& pMsg) {
