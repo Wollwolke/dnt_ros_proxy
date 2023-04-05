@@ -48,6 +48,7 @@ bool CombineTopicsAction::run(PipelineMessage& pMsg) {
     // append all msgs to buffer
     std::vector<uint8_t> buffer;
     appendMessage(buffer, pMsg.serializedMessage);
+    bool expireAllBundles = pMsg.markExpired;
 
     for (const auto& topic : topicsToCombine) {
         if (currentTopic == topic) continue;
@@ -57,6 +58,7 @@ bool CombineTopicsAction::run(PipelineMessage& pMsg) {
             appendMessage(buffer, nullptr);
         } else {
             appendMessage(buffer, msgIt->second.serializedMessage);
+            expireAllBundles &= msgIt->second.markExpired;
         }
     }
     msgStore->clear();
@@ -69,6 +71,8 @@ bool CombineTopicsAction::run(PipelineMessage& pMsg) {
     };
 
     *pMsg.serializedMessage = newMsg;
+    pMsg.markExpired = expireAllBundles;
+
     return true;
 }
 
