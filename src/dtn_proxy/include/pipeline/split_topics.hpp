@@ -16,7 +16,7 @@ private:
                                              std::shared_ptr<rclcpp::SerializedMessage> msg)>;
 
     // TODO: figure out the correct sequence for all modules
-    const uint SEQUENCE_NR = 5;
+    const uint SEQUENCE_NR = 2;
     const Direction dir = Direction::OUT;
 
     const std::vector<std::string> topicsToSplit;

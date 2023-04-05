@@ -12,7 +12,7 @@ private:
     static constexpr auto supportedMsgType = "sensor_msgs/msg/Image";
     static constexpr auto BIT_DEPTH = 8;
     static constexpr auto ENCODING = "rgb8";
-    const uint SEQUENCE_NR = 1;
+    const uint SEQUENCE_NR = 10;
     const Direction dir = Direction::OUT;
 
     bool active = true;

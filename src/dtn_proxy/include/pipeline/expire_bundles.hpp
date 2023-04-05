@@ -9,7 +9,7 @@ namespace dtnproxy::pipeline {
 class ExpireBundlesAction : public IAction {
 private:
     const Direction dir = Direction::IN;
-    const uint SEQUENCE_NR = 99;
+    const uint SEQUENCE_NR = 90;
 
 public:
     Direction direction() override;
