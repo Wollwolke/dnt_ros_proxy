@@ -52,8 +52,13 @@ public:
         std::vector<uint8_t> payload;
         std::string endpoint;
         ros::DtnMsgType msgType;
+        uint64_t bundleFlags = 0;
         uint64_t lifetime = 0;
-        bool expireOlderBundles = false;
+    };
+
+    enum BundleFlags : uint64_t {
+        NO_FLAGS = 0x0,
+        BUNDLE_REMOVE_OLDER_BUNDLES = 0x200000,
     };
 
     explicit DtndClient(const conf::DtnConfig& config);

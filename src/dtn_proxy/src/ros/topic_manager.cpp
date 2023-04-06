@@ -2,6 +2,7 @@
 
 #include <arpa/inet.h>
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -24,8 +25,17 @@ void TopicManager::topicCallback(const std::string& topic, const std::string& ty
     if (subscriber.at(topic).second.run(pMsg)) {
         std::vector<uint8_t> payload;
         buildDtnPayload(payload, pMsg.serializedMessage);
-        DtndClient::Message dtnMsg{std::move(payload), topic, DtnMsgType::TOPIC, pMsg.lifetime,
-                                   pMsg.markExpired};
+
+        auto bundleFlags = pMsg.markExpired ? DtndClient::BundleFlags::BUNDLE_REMOVE_OLDER_BUNDLES
+                                            : DtndClient::BundleFlags::NO_FLAGS;
+
+        DtndClient::Message dtnMsg{
+            std::move(payload),  // std::vector<uint8_t> payload,
+            topic,               // std::string endpoint,
+            DtnMsgType::TOPIC,   // ros::DtnMsgType msgType,
+            bundleFlags,         // uint64_t bundleFlags = 0,
+            pMsg.lifetime,       // uint64_t lifetime = 0,
+        };
 
         dtn->sendMessage(dtnMsg);
         if (stats) stats->dtnSent(topic, type, dtnMsg.payload.size(), DtnMsgType::TOPIC);
