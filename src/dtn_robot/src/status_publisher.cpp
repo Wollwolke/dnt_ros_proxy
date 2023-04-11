@@ -3,6 +3,7 @@
 #include <tf2_ros/transform_listener.h>
 
 #include <chrono>
+#include <diagnostic_msgs/msg/diagnostic_array.hpp>
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <memory>
@@ -27,7 +28,7 @@ public:
         batteryPublisher =
             this->create_publisher<sensor_msgs::msg::BatteryState>("status/battery", 10);
         diagPublisher =
-            this->create_publisher<diagnostic_msgs::msg::DiagnosticStatus>("status/tempSensor", 10);
+            this->create_publisher<diagnostic_msgs::msg::DiagnosticArray>("status/tempSensor", 10);
         posPublisher =
             this->create_publisher<geometry_msgs::msg::PointStamped>("status/position", 10);
         bernoulli_025 = std::bernoulli_distribution(0.025);
@@ -48,10 +49,11 @@ private:
     std::shared_ptr<tf2_ros::TransformListener> tfListener;
 
     rclcpp::Publisher<sensor_msgs::msg::BatteryState>::SharedPtr batteryPublisher;
-    rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticStatus>::SharedPtr diagPublisher;
+    rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr diagPublisher;
     rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr posPublisher;
 
     sensor_msgs::msg::BatteryState batteryMsg;
+    diagnostic_msgs::msg::DiagnosticArray diagArray;
     diagnostic_msgs::msg::DiagnosticStatus diagMsg;
     geometry_msgs::msg::PointStamped posMsg;
 
@@ -75,6 +77,10 @@ private:
         } else {
             brokenIterations++;
         }
+
+        diagArray.header.stamp = now();
+        diagArray.status.clear();
+        diagArray.status.push_back(diagMsg);
     }
 
     void updatePosMsg() {
@@ -97,7 +103,7 @@ private:
         updatePosMsg();
 
         batteryPublisher->publish(batteryMsg);
-        diagPublisher->publish(diagMsg);
+        diagPublisher->publish(diagArray);
         posPublisher->publish(posMsg);
     }
 
