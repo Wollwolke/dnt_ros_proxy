@@ -18,7 +18,7 @@ using namespace std::chrono_literals;
 
 class StatusPublisher : public rclcpp::Node {
 public:
-    StatusPublisher() : Node("temp_sensor") {
+    StatusPublisher() : Node("robot_state_pub") {
         initMsgs();
 
         tfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
@@ -31,7 +31,7 @@ public:
             this->create_publisher<diagnostic_msgs::msg::DiagnosticArray>("status/tempSensor", 10);
         posPublisher =
             this->create_publisher<geometry_msgs::msg::PointStamped>("status/position", 10);
-        bernoulli_025 = std::bernoulli_distribution(0.025);
+        bernoulli_02 = std::bernoulli_distribution(0.02);
         bernoulli_1 = std::bernoulli_distribution(0.01);
     }
 
@@ -40,7 +40,7 @@ private:
     static constexpr auto BATT_MIN_V = 3.0;
 
     std::default_random_engine generator;
-    std::bernoulli_distribution bernoulli_025;
+    std::bernoulli_distribution bernoulli_02;
     std::bernoulli_distribution bernoulli_1;
 
     rclcpp::TimerBase::SharedPtr timer;
@@ -59,7 +59,7 @@ private:
 
     void updateBatteryMsg() {
         batteryMsg.header.stamp = now();
-        if (batteryMsg.percentage > 0.01 && bernoulli_025(generator)) {
+        if (batteryMsg.percentage > 0.01 && bernoulli_02(generator)) {
             batteryMsg.percentage -= 0.01;
             batteryMsg.voltage = BATT_MIN_V + (batteryMsg.percentage * (BATT_MAX_V - BATT_MIN_V));
         }
@@ -85,14 +85,14 @@ private:
 
     void updatePosMsg() {
         try {
-            auto transform = tfBuffer->lookupTransform("map", "base_link", tf2::TimePointZero);
+            auto transform = tfBuffer->lookupTransform("map", "base_footprint", tf2::TimePointZero);
             posMsg.point.x = transform.transform.translation.x;
             posMsg.point.y = transform.transform.translation.y;
             posMsg.header.stamp = now();
         } catch (const tf2::TransformException& ex) {
             auto& clk = *this->get_clock();
             RCLCPP_WARN_STREAM_THROTTLE(this->get_logger(), clk, 5000,
-                                        "Could not transform map to base_link: " << ex.what());
+                                        "Could not transform map to base_footprint: " << ex.what());
             return;
         }
     }

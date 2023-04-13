@@ -10,7 +10,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     log_lvl_launch_arg = DeclareLaunchArgument(
         "log_level",
-        default_value=TextSubstitution(text=str("DEBUG")),
+        default_value=TextSubstitution(text=str("INFO")),
         description="Logging level",
     )
 
