@@ -26,8 +26,10 @@ class MovementExtractor(Node):
 
     def on_timer(self):
         try:
-            transform = self.tf_buffer.lookup_transform()
-            result = f"{transform.transform.translation.x} {transform.transform.translation.y}\n"
+            transform = self.tf_buffer.lookup_transform(
+                "map", "base_footprint", rclpy.time.Time()
+            )
+            result = f"{round(transform.transform.translation.x,2)} {round(transform.transform.translation.y,2)}\n"
             self.file.write(result)
         except TransformException as ex:
             self.get_logger().info(
@@ -48,8 +50,6 @@ def main():
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
-
-    rclpy.shutdown()
 
 
 if __name__ == "__main__":
