@@ -1,16 +1,34 @@
 #!/usr/bin/env python3
 
+"""Replaces DiagnosticStatus Msg with DiagnosticArray Msg"""
+
 import argparse
 
 from rclpy.serialization import deserialize_message, serialize_message
-from rclpy.node import Node
-from rclpy.clock import ClockType
 from rclpy.time import Time
 from rosidl_runtime_py.utilities import get_message
 
-from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus
+from diagnostic_msgs.msg import DiagnosticArray
 
 import rosbag2_py
+
+# enums: https://github.com/ros2/rclcpp/blob/rolling/rclcpp/include/rclcpp/qos.hpp
+TF_STATIC_QOS = """- history: 0
+  depth: 1
+  reliability: 1
+  durability: 1
+  deadline:
+    sec: 0
+    nsec: 0
+  lifespan:
+    sec: 0
+    nsec: 0
+  liveliness: 0
+  liveliness_lease_duration:
+    sec: 0
+    nsec: 0
+  avoid_ros_namespace_conventions: false
+"""
 
 
 def read_messages(input_bag: str):
@@ -51,19 +69,33 @@ def write_msg(args):
     initializedTopics = set()
     initTime = -1
     cnt = 0
-    
+
     initializedTopics.add("/status/tempSensor")
     writer.create_topic(
-        rosbag2_py.TopicMetadata(name="/status/tempSensor", type="diagnostic_msgs/msg/DiagnosticArray", serialization_format="cdr")
+        rosbag2_py.TopicMetadata(
+            name="/status/tempSensor",
+            type="diagnostic_msgs/msg/DiagnosticArray",
+            serialization_format="cdr",
+        )
     )
 
     for topic, msg_type, msg, timestamp in read_messages(args.input):
         if not topic in initializedTopics:
-            writer.create_topic(
-                rosbag2_py.TopicMetadata(
-                    name=topic, type=msg_type, serialization_format="cdr"
+            if "/tf_static" == topic:
+                writer.create_topic(
+                    rosbag2_py.TopicMetadata(
+                        name=topic,
+                        type=msg_type,
+                        serialization_format="cdr",
+                        offered_qos_profiles=TF_STATIC_QOS,
+                    )
                 )
-            )
+            else:
+                writer.create_topic(
+                    rosbag2_py.TopicMetadata(
+                        name=topic, type=msg_type, serialization_format="cdr"
+                    )
+                )
             initializedTopics.add(topic)
         if -1 == initTime and "/status/battery" == topic:
             initTime = Time().from_msg(msg.header.stamp).nanoseconds
