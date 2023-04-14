@@ -70,6 +70,9 @@ void Transfer::onDtnMessage(const data::WsReceive& bundle) {
     auto typedEndpoint = bundle.dst;
 
     auto [topic, type] = splitEndpointAndType(typedEndpoint);
+    // TODO: get msg type for stats
+    if (stats) stats->dtnReceived(topic, "unknown", data.size(), type);
+
     switch (type) {
         case DtnMsgType::TOPIC: {
             topics.onDtnMessage(topic, data);
@@ -91,9 +94,6 @@ void Transfer::onDtnMessage(const data::WsReceive& bundle) {
             // Not a message for us, ignoring...
             return;
     }
-
-    // TODO: get msg type for stats
-    if (stats) stats->dtnReceived(topic, "unknown", data.size(), type);
 }
 
 }  // namespace dtnproxy::ros

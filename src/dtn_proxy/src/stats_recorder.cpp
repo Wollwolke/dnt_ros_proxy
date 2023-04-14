@@ -1,5 +1,6 @@
 #include "stats_recorder.hpp"
 
+#include <cstddef>
 #include <ctime>
 #include <filesystem>
 #include <fstream>
@@ -50,7 +51,7 @@ StatsRecorder::~StatsRecorder() { file.close(); }
 // TODO: refactor this...
 
 void StatsRecorder::rosReceived(const std::string& topic, const std::string& msgType, uint32_t size,
-                                ros::DtnMsgType rosType) {
+                                ros::DtnMsgType rosType, size_t msgHash) {
     std::stringstream logMsg;
     logMsg << timestamp() << "ROS;";
 
@@ -71,12 +72,12 @@ void StatsRecorder::rosReceived(const std::string& topic, const std::string& msg
         default:
             return;
     }
-    logMsg << topic << ";" << msgType << ";" << size;
+    logMsg << topic << ";" << msgType << ";" << size << ";" << msgHash;
     file << logMsg.rdbuf() << std::endl;
 }
 
 void StatsRecorder::rosSent(const std::string& topic, const std::string& msgType, uint32_t size,
-                            ros::DtnMsgType rosType) {
+                            ros::DtnMsgType rosType, size_t msgHash) {
     std::stringstream logMsg;
     logMsg << timestamp() << "ROS;";
 
@@ -97,7 +98,7 @@ void StatsRecorder::rosSent(const std::string& topic, const std::string& msgType
         default:
             return;
     }
-    logMsg << topic << ";" << msgType << ";" << size;
+    logMsg << topic << ";" << msgType << ";" << size << ";" << msgHash;
     file << logMsg.rdbuf() << std::endl;
 }
 

@@ -1,7 +1,8 @@
 #pragma once
 
 #include <memory>
-#include <rclcpp/rclcpp.hpp>
+#include <rclcpp/serialized_message.hpp>
+#include <string_view>
 #include <vector>
 
 #include "configuration.hpp"
@@ -12,6 +13,14 @@ namespace dtnproxy::ros {
 
 class ManagerBase {
 protected:
+    struct CdrMsgHash {
+        // !Only properly works with timestamped msgs!
+        std::size_t operator()(const rcl_serialized_message_t& msg) const noexcept {
+            const char* data = reinterpret_cast<const char*>(msg.buffer);
+            return std::hash<std::string_view>{}(std::string_view(data, msg.buffer_length));
+        }
+    };
+
     // TODO: validate this offset!!
     // Stats is using no overhead for DTN msgs, so ROS Overhead is also set to zero
     // const uint32_t CDR_MSG_SIZE_OFFSET = sizeof(size_t) + sizeof(size_t);

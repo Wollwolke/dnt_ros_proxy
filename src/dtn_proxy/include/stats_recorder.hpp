@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <fstream>
 #include <string>
 
@@ -10,16 +11,16 @@ namespace dtnproxy {
 class StatsRecorder {
 private:
     std::ofstream file;
-    std::string timestamp();
+    static std::string timestamp();
 
 public:
     StatsRecorder(const std::string& statsDir);
     ~StatsRecorder();
 
     void rosReceived(const std::string& topic, const std::string& msgType, uint32_t size,
-                     ros::DtnMsgType rosType);
+                     ros::DtnMsgType rosType, size_t msgHash = 0);
     void rosSent(const std::string& topic, const std::string& msgType, uint32_t size,
-                 ros::DtnMsgType rosType);
+                 ros::DtnMsgType rosType, size_t msgHash = 0);
     void dtnReceived(const std::string& endpoint, const std::string& msgType, uint32_t size,
                      ros::DtnMsgType rosType);
     void dtnSent(const std::string& endpoint, const std::string& msgType, uint32_t size,

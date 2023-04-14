@@ -1,3 +1,6 @@
+// ! Deprecated
+// TODO: remove
+
 #include "pipeline/logging.hpp"
 
 #include <chrono>
