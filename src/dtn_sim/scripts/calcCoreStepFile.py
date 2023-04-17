@@ -6,8 +6,9 @@ import argparse
 from math import sqrt
 from enum import Enum
 
+SIM_TIME = 15 * 60
 SIM_STEP_SIZE = 0.2
-DRONE_WAIT_TIME = 15
+DRONE_WAIT_TIME = 20
 HEADER = f"""%delay {SIM_STEP_SIZE}
 
 # initial positions
@@ -32,11 +33,13 @@ def dist(p1, p2):
 
 
 def isInRange(p1, p2):
-    return dist(p1, p2) < (args.range - 5)
+    return dist(p1, p2) < (args.range - 10)
 
 
 def moveDrone(actualPos, desiredPos):
     distance = dist(actualPos, desiredPos)
+    if 0 == distance:
+        return actualPos
     delta = min(distance, args.speed * SIM_STEP_SIZE)
     x = actualPos[0] + (delta * (desiredPos[0] - actualPos[0])) / distance
     y = actualPos[1] + (delta * (desiredPos[1] - actualPos[1])) / distance
@@ -50,17 +53,16 @@ def getDronePosition(robot, drone):
         getDronePosition.counter = 0
 
     rx, ry = robot
-    dx, dy = drone
 
     distance = dist(args.base, robot)
-    if distance < args.range:
+    if isInRange(robot, args.base):
         # No Airbridge needed
         return drone
-    elif distance < 2 * args.range:
+    elif distance < (2 * args.range) - 10:
         # Drone in the middle should bridge the gap
         state = DroneState.UNKNOWN
-        x = (rx + dx) / 2
-        y = (ry + dy) / 2
+        x = (rx + args.base[0]) / 2
+        y = (ry + args.base[1]) / 2
         return moveDrone(drone, (x, y))
     else:
         # Drone has to fly to bridge the gap
@@ -96,25 +98,32 @@ def getDronePosition(robot, drone):
 
 
 def buildStepFile(input):
-    dx, dy = (args.base[0] + 3, args.base[1] + 3)
-    rx, ry = args.robot
+    lastDrone = (args.base[0] + 3, args.base[1] + 3)
+    lastRobot = args.robot
+    # Add 10 seconds to prevent loop before sim ends
+    countdown = (SIM_TIME + 10) / SIM_STEP_SIZE
     with open(args.output, "w") as file:
         file.write(HEADER)
 
         # write init positions
-        file.write(f"robot {rx} {ry}\n")
-        file.write(f"drone {dx} {dy}\n")
+        # file.write(f"robot {lastRobot[0]} {lastRobot[1]}\n")
+        file.write(f"drone {lastDrone[0]} {lastDrone[1]}\n")
 
         for line in input:
-            file.write("-- STEP\n")
-            x, y = line.split()
+            if countdown <= 0:
+                return
+            countdown -= 1
+            x, y = [float(value) for value in line.split()]
             rx = x + args.robot[0]
             ry = y + args.robot[1]
-            newDrone = getDronePosition((rx, ry), (dx, dy))
-            file.write(f"robot {rx} {ry}\n")
-            if newDrone[0] != dx or newDrone[1] != dy:
-                dx, dy = newDrone
-                file.write(f"drone {dx} {dy}\n")
+            newDrone = getDronePosition((rx, ry), lastDrone)
+            if dist(lastRobot, (rx, ry)) > 0.01:
+                file.write(f"robot {round(rx, 2)} {round(ry, 2)}\n")
+                lastRobot = (rx, ry)
+            if dist(lastDrone, newDrone) > 0.01:
+                file.write(f"drone {round(newDrone[0],2)} {round(newDrone[1],2)}\n")
+                lastDrone = newDrone
+            file.write("-- STEP\n")
 
 
 def main():
@@ -160,7 +169,7 @@ def main():
     args = parser.parse_args()
 
     with open(args.input, "r") as file:
-        lines = file.readlines()
+        lines = file.readlines()[int(args.start / SIM_STEP_SIZE) : :]
 
     buildStepFile(lines)
 
