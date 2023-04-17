@@ -12,12 +12,31 @@
 namespace dtnproxy::ros {
 
 class ManagerBase {
+private:
+    static constexpr auto BYTES_FOR_HASH = 16;
+
 protected:
     struct CdrMsgHash {
         // !Only properly works with timestamped msgs!
-        std::size_t operator()(const rcl_serialized_message_t& msg) const noexcept {
+        std::size_t operator()(const rcl_serialized_message_t& msg,
+                               const std::string& topic) const noexcept {
             const char* data = reinterpret_cast<const char*>(msg.buffer);
-            return std::hash<std::string_view>{}(std::string_view(data, msg.buffer_length));
+            std::string hashOver(data, BYTES_FOR_HASH);
+            hashOver.append(topic);
+            return std::hash<std::string>{}(hashOver);
+            // return std::hash<std::string_view>{}(std::string_view(data, msg.buffer_length));
+            // Hash over the whole msg doesn't work, because...
+
+            //            seq ID?   seconds    nsecs     id len
+            //           |-------| |-------| |-------| |-------|
+            //           v       v v       v v       v v       v
+            // 00000000: 0001 0000 2550 3d64 38f2 3b34 0500 0000  ....%P=d8.;4....
+            // 00000010: 7465 7374 0000 0000 e001 0000 8002 0000  test............
+            //           ^          ^^     ^ ^                 ^
+            //           |----------||-----| |-----------------|
+            //            frame id    ?????         data
+
+            // ????? changes randomly / is not initialized?
         }
     };
 
