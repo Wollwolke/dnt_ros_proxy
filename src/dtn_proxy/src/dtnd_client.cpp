@@ -95,7 +95,7 @@ bool DtndClient::connect(const std::vector<DtnEndpoint>& endpoints) {
 }
 
 void DtndClient::sendMessage(const Message& dtnMsg) {
-    const auto MS_IN_SECOND = 60 * 1000;
+    const auto MS_IN_SECOND = 1000;
 
     auto typedEndpoint = dtnMsg.endpoint;
     buildEndpointId(typedEndpoint, dtnMsg.msgType);
