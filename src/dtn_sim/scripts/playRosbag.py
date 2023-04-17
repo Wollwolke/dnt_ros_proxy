@@ -7,9 +7,10 @@ import argparse
 import threading
 
 import rclpy
-from rclpy.serialization import deserialize_message
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.clock import ClockType
+from rclpy.serialization import deserialize_message
 from rclpy.time import Time
 from rclpy.qos import QoSDurabilityPolicy
 from rclpy.qos import QoSProfile
@@ -153,7 +154,7 @@ def main():
 
     try:
         rclpy.spin(player)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
 
 
