@@ -21,13 +21,6 @@ Direction SplitTopicsAction::direction() { return dir; }
 uint SplitTopicsAction::order() { return SEQUENCE_NR; }
 
 bool SplitTopicsAction::run(PipelineMessage& pMsg) {
-    // running on not the main topic
-    // already split, just pass it through
-    if (currentTopic != topicsToSplit[0]) {
-        return true;
-    }
-
-    // running on the main topic
     auto cdrMsg = pMsg.serializedMessage->get_rcl_serialized_message();
 
     uint32_t msgLength;

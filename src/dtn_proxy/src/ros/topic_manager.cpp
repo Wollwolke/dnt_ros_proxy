@@ -46,10 +46,11 @@ void TopicManager::topicCallback(const std::string& topic, const std::string& ty
 }
 
 void TopicManager::dtnMsgCallback(const std::string& topic,
-                                  std::shared_ptr<rclcpp::SerializedMessage> msg) {
+                                  std::shared_ptr<rclcpp::SerializedMessage> msg,
+                                  bool skipPipeline) {
     pipeline::PipelineMessage pMsg{std::move(msg)};
     // run optimization pipeline before sending ROS msgs
-    if (publisher.at(topic).second.run(pMsg)) {
+    if (skipPipeline || publisher.at(topic).second.run(pMsg)) {
         publisher.at(topic).first->publish(*pMsg.serializedMessage);
 
         // TODO: find msgType in rosConfig
@@ -81,7 +82,7 @@ void TopicManager::initPublisher() {
 
     // callback to inject msgs from other topics
     auto injectMsgCb = std::bind(&TopicManager::dtnMsgCallback, this, std::placeholders::_1,
-                                 std::placeholders::_2);
+                                 std::placeholders::_2, true);
 
     for (const auto& [topic, type, profile] : config.pubTopics) {
         pipeline::Pipeline pipeline(pipeline::Direction::OUT, type, topic);
