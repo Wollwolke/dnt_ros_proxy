@@ -53,6 +53,7 @@ bool ImageDecompressionAction::run(PipelineMessage& pMsg) {
     auto step = image.size() / height;
 
     // build ROS msg
+    // TODO: remove this shared_ptr
     auto imageMsg = std::make_shared<sensor_msgs::msg::Image>();
 
     // Fill header
@@ -73,10 +74,11 @@ bool ImageDecompressionAction::run(PipelineMessage& pMsg) {
     imageMsg->step = step;
     imageMsg->data = image;
 
+    auto serializedMsg = std::make_shared<rclcpp::SerializedMessage>();
     static rclcpp::Serialization<sensor_msgs::msg::Image> serializer;
-    serializer.serialize_message(imageMsg.get(), &serializedMsg);
+    serializer.serialize_message(imageMsg.get(), serializedMsg.get());
 
-    *pMsg.serializedMessage = serializedMsg.get_rcl_serialized_message();
+    pMsg.serializedMessage.swap(serializedMsg);
 
     return true;
 }

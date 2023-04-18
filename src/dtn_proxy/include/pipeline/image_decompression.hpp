@@ -16,7 +16,6 @@ private:
     const Direction dir = Direction::OUT;
 
     bool active = true;
-    rclcpp::SerializedMessage serializedMsg;
 
 public:
     ImageDecompressionAction(const std::string &msgType);

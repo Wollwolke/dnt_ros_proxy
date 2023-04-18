@@ -70,7 +70,7 @@ bool CombineTopicsAction::run(PipelineMessage& pMsg) {
     }
 
     // not all msgs in store yet -> add current msg to store
-    msgStore->insert_or_assign(currentTopic, pMsg);
+    msgStore->insert_or_assign(currentTopic, std::move(pMsg));
     return false;
 }
 
