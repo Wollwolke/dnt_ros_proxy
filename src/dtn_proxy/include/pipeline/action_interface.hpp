@@ -16,6 +16,7 @@ enum Direction {
 class IAction {
 private:
 public:
+    virtual ~IAction() = default;
     virtual bool run(PipelineMessage& pMsg) = 0;
     virtual Direction direction() = 0;
     virtual uint order() = 0;
