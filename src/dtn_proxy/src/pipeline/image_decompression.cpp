@@ -53,30 +53,29 @@ bool ImageDecompressionAction::run(PipelineMessage& pMsg) {
     auto step = image.size() / height;
 
     // build ROS msg
-    // TODO: remove this shared_ptr
-    auto imageMsg = std::make_shared<sensor_msgs::msg::Image>();
+    sensor_msgs::msg::Image imageMsg;
 
     // Fill header
     for (size_t i = 0; i < numOfTexts; ++i) {
         if (std::strncmp("f", keys[i], 1) == 0) {
-            imageMsg->header.frame_id = strings[i];
+            imageMsg.header.frame_id = strings[i];
         } else if (std::strncmp("s", keys[i], 1) == 0) {
-            imageMsg->header.stamp.sec = std::stoi(strings[i]);
+            imageMsg.header.stamp.sec = std::stoi(strings[i]);
         } else if (std::strncmp("n", keys[i], 1) == 0) {
-            imageMsg->header.stamp.nanosec = std::stoul(strings[i]);
+            imageMsg.header.stamp.nanosec = std::stoul(strings[i]);
         }
     }
 
-    imageMsg->height = height;
-    imageMsg->width = width;
-    imageMsg->encoding = ENCODING;
-    imageMsg->is_bigendian = 0;
-    imageMsg->step = step;
-    imageMsg->data = image;
+    imageMsg.height = height;
+    imageMsg.width = width;
+    imageMsg.encoding = ENCODING;
+    imageMsg.is_bigendian = 0;
+    imageMsg.step = step;
+    imageMsg.data = image;
 
     auto serializedMsg = std::make_shared<rclcpp::SerializedMessage>();
     static rclcpp::Serialization<sensor_msgs::msg::Image> serializer;
-    serializer.serialize_message(imageMsg.get(), serializedMsg.get());
+    serializer.serialize_message(&imageMsg, serializedMsg.get());
 
     pMsg.serializedMessage.swap(serializedMsg);
 
