@@ -37,18 +37,15 @@ bool SplitTopicsAction::run(PipelineMessage& pMsg) {
             buffer.assign(cdrMsg.buffer + offset, cdrMsg.buffer + offset + msgLength);
             offset += msgLength;
 
-            rcl_serialized_message_t newMsg{
-                &buffer.front(),                     // buffer
-                static_cast<size_t>(buffer.size()),  // buffer_length
-                static_cast<size_t>(buffer.size()),  // buffer_capacity
-                rcl_get_default_allocator()          // allocator
-            };
+            auto newSerializedMessage = std::make_shared<rclcpp::SerializedMessage>(buffer.size());
+            auto* newMsg = &newSerializedMessage->get_rcl_serialized_message();
+            std::memcpy(newMsg->buffer, &buffer.front(), buffer.size());
+            newMsg->buffer_length = buffer.size();
 
             if (currentTopic != topic) {
-                auto msgPtr = std::make_shared<rclcpp::SerializedMessage>(newMsg);
-                injectMsgCb(topic, std::move(msgPtr));
+                injectMsgCb(topic, std::move(newSerializedMessage));
             } else {
-                *pMsg.serializedMessage = newMsg;
+                pMsg.serializedMessage.swap(newSerializedMessage);
             }
         }
     }

@@ -59,7 +59,9 @@ bool ImageCompressionAction::run(PipelineMessage& pMsg) {
     }
 
     pMsg.serializedMessage->reserve(png.size());
-    std::move(png.begin(), png.end(), pMsg.serializedMessage->get_rcl_serialized_message().buffer);
+    auto* newCdrMsg = &pMsg.serializedMessage->get_rcl_serialized_message();
+    newCdrMsg->buffer_length = png.size();
+    std::move(png.begin(), png.end(), newCdrMsg->buffer);
 
     return true;
 }

@@ -58,23 +58,16 @@ bool LzmhDecodingAction::run(PipelineMessage &pMsg) {
     auto bitsToRead = bytes * BITS_IN_BYTE + bits;
     auto bytesToReserve = bytes + (bits == 0 ? 0 : 1);
 
-    std::vector<uint8_t> buffer(bytesToReserve);
+    pMsg.serializedMessage->reserve(bytesToReserve);
+    auto *newCdrMsg = &pMsg.serializedMessage->get_rcl_serialized_message();
+    newCdrMsg->buffer_length = bytesToReserve;
 
-    auto ret = ReadBitFileBuffer(bbOut, &buffer.front(), bitsToRead);
+    auto ret = ReadBitFileBuffer(bbOut, newCdrMsg->buffer, bitsToRead);
 
     if (ret != bitsToRead) {
         std::cout << "LZMH Decompression: 💥 Error reading decompressed data." << std::endl;
         return false;
     }
-
-    rcl_serialized_message_t newMsg{
-        &buffer.front(),                      // buffer
-        static_cast<size_t>(bytesToReserve),  // buffer_length
-        static_cast<size_t>(bytesToReserve),  // buffer_capacity
-        rcl_get_default_allocator()           // allocator
-    };
-
-    *pMsg.serializedMessage = newMsg;
 
     // Destroy BitFileBuffer
     UninitBitFileBuffer(bbIn);

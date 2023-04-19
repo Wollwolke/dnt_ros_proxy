@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <utility>
 
 namespace dtnproxy::pipeline {
@@ -56,14 +57,11 @@ bool CombineTopicsAction::run(PipelineMessage& pMsg) {
         }
         msgStore->clear();
 
-        rcl_serialized_message_t newMsg{
-            &buffer.front(),                     // buffer
-            static_cast<size_t>(buffer.size()),  // buffer_length
-            static_cast<size_t>(buffer.size()),  // buffer_capacity
-            rcl_get_default_allocator()          // allocator
-        };
+        pMsg.serializedMessage->reserve(buffer.size());
+        auto* cdrMsg = &pMsg.serializedMessage->get_rcl_serialized_message();
+        std::memcpy(cdrMsg->buffer, &buffer.front(), buffer.size());
+        cdrMsg->buffer_length = buffer.size();
 
-        *pMsg.serializedMessage = newMsg;
         pMsg.markExpired = expireAllBundles;
 
         return true;
