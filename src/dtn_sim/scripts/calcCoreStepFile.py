@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Generate Step file for use in core-automator"""
+"""Generate Step file for use in my custom player"""
 
 import argparse
 from collections import defaultdict
@@ -144,7 +144,7 @@ flightPatterns = {
         "drone1": ((50, 0), 100, (-50, 0)),
         "drone2": ((50, 0), 50, (0, 0)),
     },
-    "follow": {"type": PatternType.OPTIMIZED},
+    "follow": {"type": PatternType.OPTIMIZED, "drone1": []},
     "cross": {
         "type": PatternType.WP,
         "drone1": [
@@ -202,11 +202,6 @@ def moveDrone(actualPos, desiredPos):
 
 
 def getDroneOptimized(robot, drone):
-    # if not hasattr(getDroneOptimized, "state"):
-    #     getDroneOptimized.state = DroneState.UNKNOWN
-    # if not hasattr(getDroneOptimized, "counter"):
-    #     getDroneOptimized.counter = 0
-
     rx, ry = robot
 
     distance = dist(args.base, robot)
@@ -257,17 +252,10 @@ def getDroneOptimized(robot, drone):
 
 def getWp(pattern):
     global oldPositions
-    # if not hasattr(getWp, "cnt"):
-    #     getWp.cnt = defaultdict(lambda: 0)
 
     # init
     result = ""
-    nodes = []
-    for node in pattern.keys():
-        if node != "type":
-            nodes.append(node)
-            if not node in oldPositions.keys():
-                oldPositions[node] = (args.base[0] + 3, args.base[1] + 3)
+    nodes = [node for node in oldPositions.keys() if node != "robot"]
 
     for node in nodes:
         if getWp.cnt[node] >= len(pattern[node]):
@@ -286,17 +274,10 @@ def getWp(pattern):
 
 def getCircle(pattern):
     global oldPositions
-    # if not hasattr(getCircle, "startReached"):
-    #     getCircle.startReached = defaultdict(lambda: False)
 
     # init
     result = ""
-    nodes = []
-    for node in pattern.keys():
-        if node != "type":
-            nodes.append(node)
-            if not node in oldPositions.keys():
-                oldPositions[node] = (args.base[0] + 3, args.base[1] + 3)
+    nodes = [node for node in oldPositions.keys() if node != "robot"]
 
     for node in nodes:
         M, r, S = pattern[node]
@@ -323,8 +304,6 @@ def getCircle(pattern):
 def getPatternPosition(pattern):
     global oldPositions
     if pattern["type"] == PatternType.OPTIMIZED:
-        if not "drone1" in oldPositions.keys():
-            oldPositions["drone1"] = (args.base[0] + 3, args.base[1] + 3)
         result = ""
 
         newDrone = getDroneOptimized(oldPositions["robot"], oldPositions["drone1"])
@@ -340,15 +319,28 @@ def getPatternPosition(pattern):
         return getCircle(pattern)
 
 
+def reset():
+    global oldPositions
+    oldPositions.clear()
+    oldPositions["robot"] = args.robot
+    getCircle.startReached = defaultdict(lambda: False)
+    getDroneOptimized.state = DroneState.UNKNOWN
+    getDroneOptimized.counter = 0
+    getWp.cnt = defaultdict(lambda: 0)
+
+
+def initalPositions(pattern):
+    global oldPositions
+    for node in pattern.keys():
+        if node != "type":
+            oldPositions[node] = (args.base[0] + 3, args.base[1] + 3)
+
+
 def buildStepFiles(robotSteps):
     global oldPositions
     for name, pattern in flightPatterns.items():
-        oldPositions.clear()
-        oldPositions["robot"] = args.robot
-        getCircle.startReached = defaultdict(lambda: False)
-        getDroneOptimized.state = DroneState.UNKNOWN
-        getDroneOptimized.counter = 0
-        getWp.cnt = defaultdict(lambda: 0)
+        reset()
+        initalPositions(pattern)
 
         # Add 10 seconds to prevent loop before sim ends
         countdown = int((SIM_TIME + 10) / SIM_STEP_SIZE)
@@ -356,7 +348,16 @@ def buildStepFiles(robotSteps):
         with open(f"{args.output}/{name}.step", "w") as file:
             file.write(HEADER)
 
-            for i in range(countdown):
+            # write inital position
+            file.write(f"%0\n")
+            file.write(f"robot {args.robot[0]} {args.robot[1]}\n")
+            for node in pattern.keys():
+                if node != "type":
+                    file.write(
+                        f"{node} {oldPositions[node][0]} {oldPositions[node][1]}\n"
+                    )
+
+            for i in range(1, countdown):
                 # get pattern positions
                 patternPos = getPatternPosition(pattern)
 
