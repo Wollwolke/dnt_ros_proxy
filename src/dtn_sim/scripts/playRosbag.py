@@ -36,7 +36,7 @@ class TimelyRosbagPlayer(Node):
                     type,
                     topic,
                     qos_profile=QoSProfile(
-                        depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL
+                        depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL
                     ),
                 )
             else:
