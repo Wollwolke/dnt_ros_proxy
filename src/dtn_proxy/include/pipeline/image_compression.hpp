@@ -13,7 +13,7 @@ class ImageCompressionAction : public IAction {
 private:
     static constexpr auto supportedMsgType = "sensor_msgs/msg/Image";
     static constexpr auto BIT_DEPTH = 8;
-    const uint SEQUENCE_NR = 90;
+    const uint SEQUENCE_NR = 80;
     const Direction dir = Direction::IN;
 
     bool active = true;

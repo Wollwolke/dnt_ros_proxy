@@ -28,11 +28,12 @@ private:
 public:
     Pipeline(Direction dir, std::string msgType, std::string topic);
 
-    void initPipeline(const PipelineConfig& config, const std::string& profile);
     void initPipeline(const PipelineConfig& config, const std::string& profile,
-                      msgStorePtr_t msgStore);
+                      rclcpp::Node& nodeHandle);
     void initPipeline(const PipelineConfig& config, const std::string& profile,
-                      injectMsgCb_t injectMsgCb);
+                      rclcpp::Node& nodeHandle, msgStorePtr_t msgStore);
+    void initPipeline(const PipelineConfig& config, const std::string& profile,
+                      rclcpp::Node& nodeHandle, injectMsgCb_t injectMsgCb);
     bool run(PipelineMessage& pMsg);
 };
 

@@ -15,6 +15,8 @@ enum Module {
     ON_CHANGE,
     COMBINE,
     SPLIT,
+    COMBINE_TF,
+    SPLIT_TF,
 };
 
 const std::map<std::string, Module> moduleMapping{{"RateLimit", Module::RATE_LIMIT},
@@ -26,6 +28,8 @@ const std::map<std::string, Module> moduleMapping{{"RateLimit", Module::RATE_LIM
                                                   {"Expire", Module::EXPIRE},
                                                   {"OnChange", Module::ON_CHANGE},
                                                   {"Combine", Module::COMBINE},
-                                                  {"Split", Module::SPLIT}};
+                                                  {"Split", Module::SPLIT},
+                                                  {"CombineTF", Module::COMBINE_TF},
+                                                  {"SplitTF", Module::SPLIT_TF}};
 
 }  // namespace dtnproxy::pipeline

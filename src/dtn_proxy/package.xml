@@ -12,6 +12,9 @@
   <depend>asio</depend>
   <depend>rclcpp</depend>
   <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
   
   <build_depend>ros2_babel_fish</build_depend>
 

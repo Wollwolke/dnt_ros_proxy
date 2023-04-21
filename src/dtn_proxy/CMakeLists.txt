@@ -17,7 +17,10 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(ros2_babel_fish REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -39,7 +42,7 @@ file(GLOB SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline/*.cpp)
 
 add_executable(dtnproxy ${SOURCES})
-ament_target_dependencies(dtnproxy rclcpp sensor_msgs ros2_babel_fish)
+ament_target_dependencies(dtnproxy rclcpp geometry_msgs sensor_msgs tf2 tf2_ros ros2_babel_fish)
 target_compile_definitions(dtnproxy PRIVATE ASIO_STANDALONE)
 
 target_include_directories(dtnproxy PUBLIC

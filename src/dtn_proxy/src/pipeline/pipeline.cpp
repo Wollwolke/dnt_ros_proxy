@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "pipeline/action_interface.hpp"
+#include "pipeline/combine_tf.hpp"
 #include "pipeline/combine_topics.hpp"
 #include "pipeline/expire_bundles.hpp"
 #include "pipeline/image_compression.hpp"
@@ -16,6 +17,7 @@
 #include "pipeline/on_change.hpp"
 #include "pipeline/pipeline_msg.hpp"
 #include "pipeline/rate_limit.hpp"
+#include "pipeline/split_tf.hpp"
 #include "pipeline/split_topics.hpp"
 
 namespace dtnproxy::pipeline {
@@ -23,7 +25,8 @@ namespace dtnproxy::pipeline {
 Pipeline::Pipeline(Direction dir, std::string msgType, std::string topic)
     : msgType(std::move(msgType)), topic(std::move(topic)), direction(dir) {}
 
-void Pipeline::initPipeline(const PipelineConfig& config, const std::string& profile) {
+void Pipeline::initPipeline(const PipelineConfig& config, const std::string& profile,
+                            rclcpp::Node& nodeHandle) {
     if (profile.empty()) {
         return;
     }
@@ -61,6 +64,12 @@ void Pipeline::initPipeline(const PipelineConfig& config, const std::string& pro
             case Module::SPLIT:
                 mod = std::make_unique<SplitTopicsAction>(topic, params, injectMsgCb);
                 break;
+            case Module::COMBINE_TF:
+                mod = std::make_unique<CombineTfAction>(params, nodeHandle);
+                break;
+            case Module::SPLIT_TF:
+                mod = std::make_unique<SplitTfAction>(nodeHandle);
+                break;
         }
         // Check if module should run when msg enters / leaves proxy
         if ((mod->direction() & (this->direction | Direction::INOUT)) != 0) {
@@ -73,15 +82,15 @@ void Pipeline::initPipeline(const PipelineConfig& config, const std::string& pro
 }
 
 void Pipeline::initPipeline(const PipelineConfig& config, const std::string& profile,
-                            msgStorePtr_t msgStore) {
+                            rclcpp::Node& nodeHandle, msgStorePtr_t msgStore) {
     this->msgStore = std::move(msgStore);
-    initPipeline(config, profile);
+    initPipeline(config, profile, nodeHandle);
 }
 
 void Pipeline::initPipeline(const PipelineConfig& config, const std::string& profile,
-                            injectMsgCb_t injectMsgCb) {
+                            rclcpp::Node& nodeHandle, injectMsgCb_t injectMsgCb) {
     this->injectMsgCb = std::move(injectMsgCb);
-    initPipeline(config, profile);
+    initPipeline(config, profile, nodeHandle);
 }
 
 bool Pipeline::run(PipelineMessage& pMsg) {

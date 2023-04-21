@@ -86,7 +86,7 @@ void TopicManager::initPublisher() {
 
     for (const auto& [topic, type, profile] : config.pubTopics) {
         pipeline::Pipeline pipeline(pipeline::Direction::OUT, type, topic);
-        pipeline.initPipeline(config.profiles, profile, injectMsgCb);
+        pipeline.initPipeline(config.profiles, profile, nodeHandle, injectMsgCb);
 
         auto pubTopic = prefixTopic(topic, false);
         publisher.insert_or_assign(
@@ -105,7 +105,7 @@ void TopicManager::initSubscriber() {
 
     for (const auto& [topic, type, profile] : config.subTopics) {
         pipeline::Pipeline pipeline(pipeline::Direction::IN, type, topic);
-        pipeline.initPipeline(config.profiles, profile, msgStore);
+        pipeline.initPipeline(config.profiles, profile, nodeHandle, msgStore);
 
         auto cb = std::bind(&TopicManager::topicCallback, this, topic, type, std::placeholders::_1);
 
