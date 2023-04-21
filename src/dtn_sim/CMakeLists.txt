@@ -23,6 +23,7 @@ ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS
   scripts/sendWaypoints.py
   scripts/playRosbag.py
+  scripts/recordTopicDelay.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
