@@ -1,6 +1,9 @@
 #include "pipeline/on_change.hpp"
 
+#include <algorithm>
 #include <cstddef>
+#include <cstring>
+#include <iostream>
 #include <memory>
 #include <rclcpp/serialization.hpp>
 #include <string>
@@ -27,40 +30,52 @@ Direction OnChangeAction::direction() { return dir; }
 uint OnChangeAction::order() { return SEQUENCE_NR; }
 
 bool OnChangeAction::run(PipelineMessage &pMsg) {
-    auto rosMsg = ros::allocate_message(msgMembers);
-    rclcpp::SerializationBase(&msgTypeSupport->type_support_handle)
-        .deserialize_message(pMsg.serializedMessage.get(), rosMsg.get());
-    auto fishMsg = ros2_babel_fish::CompoundMessage(*msgMemberIntro, rosMsg);
-
-    // find header
-    int headerIndex = -1;
-    for (size_t i = 0; i < fishMsg.keys().size(); ++i) {
-        if ("header" == fishMsg.keyAt(i)) {
-            headerIndex = i;
-            break;
-        }
-    }
-
-    size_t cnt = 0;
-    auto fishMsgParts = fishMsg.values();
     if (oldMsg.empty()) {
-        for (auto msgPart : fishMsgParts) {
-            if (headerIndex == cnt++) continue;
-            oldMsg.push_back(std::move(msgPart));
+        // first call, search for header
+        auto rosMsg = ros::allocate_message(msgMembers);
+        rclcpp::SerializationBase(&msgTypeSupport->type_support_handle)
+            .deserialize_message(pMsg.serializedMessage.get(), rosMsg.get());
+        auto fishMsg = ros2_babel_fish::CompoundMessage(*msgMemberIntro, rosMsg);
+
+        // find header
+        for (size_t i = 0; i < fishMsg.keys().size(); ++i) {
+            if ("header" == fishMsg.keyAt(i)) {
+                if (0 != i) {
+                    std::cout << "OnChange: ⚠ Header found as element number " << i
+                              << ". Currently only supported as first element, passing all "
+                                 "messages through."
+                              << std::endl;
+                    active = false;
+                }
+                headerOffset = DEFAULT_HEADER_OFFSET;
+                break;
+            }
         }
+        auto *cdrMsg = &pMsg.serializedMessage->get_rcl_serialized_message();
+        oldMsg.assign(cdrMsg->buffer + headerOffset, cdrMsg->buffer + cdrMsg->buffer_length);
         return true;
     }
 
-    auto equal = true;
-    cnt = 0;
-    for (size_t i = 0; i < fishMsgParts.size(); ++i) {
-        if (headerIndex == i) continue;
-        equal &= (*oldMsg[cnt] == *fishMsgParts[i]);
-        oldMsg[cnt] = std::move(fishMsgParts[i]);
-        cnt++;
+    if (!active) {
+        return true;
     }
 
-    return !equal;
+    auto *cdrMsg = &pMsg.serializedMessage->get_rcl_serialized_message();
+
+    // msg has different length
+    if (oldMsg.size() + headerOffset != cdrMsg->buffer_length) {
+        oldMsg.assign(cdrMsg->buffer + headerOffset, cdrMsg->buffer + cdrMsg->buffer_length);
+        return true;
+    }
+
+    // check for equality
+    if (std::equal(oldMsg.begin(), oldMsg.end(), cdrMsg->buffer + headerOffset)) {
+        return false;
+    }
+
+    // not equal -> copy new msg
+    oldMsg.assign(cdrMsg->buffer + headerOffset, cdrMsg->buffer + cdrMsg->buffer_length);
+    return true;
 }
 
 }  // namespace dtnproxy::pipeline
