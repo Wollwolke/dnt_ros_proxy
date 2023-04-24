@@ -19,3 +19,6 @@
 [submodule "src/dtn_proxy/external/lodepng"]
 	path = src/dtn_proxy/external/lodepng
 	url = https://github.com/lvandeve/lodepng.git
+[submodule "src/radiation_msgs"]
+	path = src/radiation_msgs
+	url = https://github.com/EEEManchester/radiation_msgs.git

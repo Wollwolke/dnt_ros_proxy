@@ -22,6 +22,7 @@ find_package(nav2_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(radiation_msgs REQUIRED)
 
 find_package(dtn_robot_interfaces REQUIRED)
 
@@ -83,6 +84,16 @@ ament_target_dependencies(status_pub
   "tf2_ros"
   "sensor_msgs")
 
+# other sensors
+add_executable(other_sensors src/other_sensors.cpp)
+target_include_directories(other_sensors PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(other_sensors
+  "rclcpp"
+  "sensor_msgs"
+  "radiation_msgs")
+
 install(TARGETS
   status_pub
   DESTINATION lib/${PROJECT_NAME})
@@ -97,6 +108,10 @@ install(TARGETS
 
 install(TARGETS
   image_pub
+  DESTINATION lib/${PROJECT_NAME})
+
+install(TARGETS
+  other_sensors
   DESTINATION lib/${PROJECT_NAME})
 
 # Install files.
