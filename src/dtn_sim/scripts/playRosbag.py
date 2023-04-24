@@ -27,6 +27,7 @@ class TimelyRosbagPlayer(Node):
         self.file = args.input
         self.loop = args.loop
         self.skip = args.skip
+        self.topics = args.topic
 
     def get_pub(self, topic, type):
         if not topic in self.pubs:
@@ -50,7 +51,13 @@ class TimelyRosbagPlayer(Node):
     def play(self):
         while True:
             timeDiff = None
-            for topic, msg_type, msg, timestamp in read_messages(self.file, int(self.skip * 1e9)):
+            for topic, msg_type, msg, timestamp in read_messages(
+                self.file, int(self.skip * 1e9)
+            ):
+                # only play requested topics
+                if self.topics and topic not in self.topics:
+                    continue
+
                 pub = self.get_pub(topic, msg_type)
 
                 if None == timeDiff:
@@ -85,7 +92,7 @@ class TimelyRosbagPlayer(Node):
 
 
 def read_messages(input_bag: str, skip_nsec: int):
-    if 0!= skip_nsec:
+    if 0 != skip_nsec:
         reader = rosbag2_py.SequentialReader()
         reader.open(
             rosbag2_py.StorageOptions(uri=input_bag, storage_id="mcap"),
@@ -145,6 +152,13 @@ def main():
         dest="skip",
         type=int,
         default=0,
+    )
+    parser.add_argument(
+        "-t",
+        "--topics",
+        nargs="+",
+        dest="topic",
+        help="Topics to replay, separated by space. If none specified, all topics will be replayed.",
     )
     args = parser.parse_args()
 
