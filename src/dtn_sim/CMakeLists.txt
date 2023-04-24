@@ -24,6 +24,7 @@ install(PROGRAMS
   scripts/sendWaypoints.py
   scripts/playRosbag.py
   scripts/recordTopicDelay.py
+  scripts/corePosNode.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
