@@ -1,10 +1,24 @@
 #include "ws_client.hpp"
 
+#include <chrono>
 #include <functional>
 #include <iostream>
 #include <thread>
 
 namespace dtnproxy {
+
+void WsClient::pingLoop() {
+    websocketpp::lib::error_code errorCode;
+
+    while (!shutdownRequested) {
+        endpoint.ping(metadata.hdl, "wolke", errorCode);
+
+        if (errorCode) {
+            log->ERR() << "Error sending WS Ping: " << errorCode.message();
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(WS_PING_RATE));
+    }
+}
 
 WsClient::WsClient() {
     bundleHandler = [](const std::string&) {};
@@ -58,6 +72,10 @@ bool WsClient::connect(const std::string& uri) {
         std::bind(&WsClient::onMessage, this, std::placeholders::_1, std::placeholders::_2));
     conReq->set_close_handler(
         std::bind(&WsClient::onClose, this, &endpoint, std::placeholders::_1));
+    conReq->set_pong_handler(
+        std::bind(&WsClient::onPong, this, std::placeholders::_1, std::placeholders::_2));
+    conReq->set_pong_timeout_handler(
+        std::bind(&WsClient::onPongTimeout, this, std::placeholders::_1, std::placeholders::_2));
 
     endpoint.connect(conReq);
 
@@ -68,6 +86,7 @@ void WsClient::close(websocketpp::close::status::value code) {
     if (metadata.status == Status::OPEN) {
         log->INFO() << "Closing Websocket connection.";
 
+        shutdownRequested = true;
         websocketpp::lib::error_code errorCode;
         endpoint.close(metadata.hdl, code, "", errorCode);
         if (errorCode) {
@@ -97,12 +116,14 @@ void WsClient::send(const std::vector<uint8_t>& msg) {
     }
 }
 
-void WsClient::onOpen(client* c, websocketpp::connection_hdl hdl) {
+void WsClient::onOpen(client* /*c*/, websocketpp::connection_hdl /*hdl*/) {
     metadata.status = Status::OPEN;
     connectionStatusHandler(true);
 
-    (void)c;
-    (void)hdl;
+    // start ping loop
+    std::thread pingThread(&WsClient::pingLoop, this);
+    pingThread.detach();
+
     // TODO: check response header
     // client::connection_ptr con = c->get_con_from_hdl(hdl);
     // server = con->get_response_header("Server");
@@ -120,6 +141,7 @@ void WsClient::onFail(client* c, websocketpp::connection_hdl hdl) {
 }
 
 void WsClient::onClose(client* c, websocketpp::connection_hdl hdl) {
+    shutdownRequested = true;
     metadata.status = Status::CLOSED;
     client::connection_ptr con = c->get_con_from_hdl(hdl);
     std::stringstream s;
@@ -145,6 +167,14 @@ void WsClient::onMessage(websocketpp::connection_hdl, client::message_ptr msg) {
         // TODO: Error handling
         log->DBG() << ">> " << payload;
     }
+}
+
+void WsClient::onPong(websocketpp::connection_hdl /*hdl*/, std::string payload) {
+    log->DBG() << "Received pong with payload: " << payload;
+}
+
+void WsClient::onPongTimeout(websocketpp::connection_hdl /*hdl*/, std::string payload) {
+    log->ERR() << "Pong timeout with payload: " << payload;
 }
 
 std::ostream& operator<<(std::ostream& out, const WsClient::Metadata& data) {

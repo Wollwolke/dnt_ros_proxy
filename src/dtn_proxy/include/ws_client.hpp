@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <websocketpp/client.hpp>
@@ -10,6 +11,7 @@ namespace dtnproxy {
 
 class WsClient {
 private:
+    static constexpr auto WS_PING_RATE = 5;
     enum Status : uint8_t;
 
     using client = websocketpp::client<websocketpp::config::asio_client>;
@@ -27,8 +29,11 @@ private:
     client endpoint;
     Metadata metadata;
     std::shared_ptr<websocketpp::lib::thread> thread;
+    std::atomic<bool> shutdownRequested = false;
 
     std::unique_ptr<Logger> log;
+
+    void pingLoop();
 
 public:
     WsClient();
@@ -46,6 +51,8 @@ public:
     void onFail(client* c, websocketpp::connection_hdl hdl);
     void onClose(client* c, websocketpp::connection_hdl hdl);
     void onMessage(websocketpp::connection_hdl hdl, client::message_ptr msg);
+    void onPong(websocketpp::connection_hdl hdl, std::string payload);
+    void onPongTimeout(websocketpp::connection_hdl hdl, std::string payload);
 
     friend std::ostream& operator<<(std::ostream& out, const Metadata& data);
     friend std::ostream& operator<<(std::ostream& os, const Status& status);
