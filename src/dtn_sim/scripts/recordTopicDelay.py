@@ -5,11 +5,11 @@
 import argparse
 import statistics
 from collections import defaultdict
-from time import time
 
 import rclpy
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rclpy.time import Time
 
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import Temperature
@@ -70,10 +70,11 @@ class DelayRecorder(Node):
             print(f"stdev: {(statistics.stdev(values) * 1000):.5f}ms\n")
 
     def callback(self, msg, topic):
-        now = time()
+        now = self.get_clock().now()
         try:
-            msgTime = msg.header.stamp.sec + msg.header.stamp.nanosec / 1e9
-            self.records[topic].append(now - msgTime)
+            msgTime = Time.from_msg(msg.header.stamp)
+            diff = (now - msgTime).nanoseconds * 1e-9
+            self.records[topic].append(diff)
         except AttributeError as err:
             print(f"Error reading timestep on topic {topic}: {err}")
 
