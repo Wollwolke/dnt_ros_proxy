@@ -54,22 +54,14 @@ class TimelyRosbagPlayer(Node):
             for topic, msg_type, msg, timestamp in read_messages(
                 self.file, int(self.skip * 1e9)
             ):
+                if None == timeDiff:
+                    timeDiff = self.get_clock().now().nanoseconds - timestamp
+
                 # only play requested topics
                 if self.topics and topic not in self.topics:
                     continue
 
                 pub = self.get_pub(topic, msg_type)
-
-                if None == timeDiff:
-                    timeDiff = self.get_clock().now().nanoseconds - timestamp
-                else:
-                    self.get_clock().sleep_until(
-                        Time(
-                            nanoseconds=timestamp + timeDiff,
-                            clock_type=ClockType.ROS_TIME,
-                        ),
-                        context=self.context,
-                    )
 
                 if not isinstance(msg, tf2_msgs.msg._tf_message.TFMessage):
                     # non tf msgs
@@ -83,6 +75,15 @@ class TimelyRosbagPlayer(Node):
                 else:
                     # tf msgs, have a different time reference?
                     pass
+
+                # sleep until message has to be sent
+                self.get_clock().sleep_until(
+                    Time(
+                        nanoseconds=timestamp + timeDiff,
+                        clock_type=ClockType.ROS_TIME,
+                    ),
+                    context=self.context,
+                )
 
                 if not rclpy.ok():
                     return
