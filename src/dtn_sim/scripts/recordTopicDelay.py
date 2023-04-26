@@ -2,6 +2,8 @@
 
 """Record the delay of a ROS topic from header timestamp."""
 
+import argparse
+import statistics
 from collections import defaultdict
 from time import time
 
@@ -18,54 +20,54 @@ from geometry_msgs.msg import PointStamped
 
 
 class DelayRecorder(Node):
-    def __init__(self):
+    def __init__(self, args):
         super().__init__("delay_recorder")
         self.records = defaultdict(list)
         self.subscribers = []
 
         self.create_subscription(
             Image,
-            "/detectedImages",
-            lambda msg: self.callback(msg, "/detectedImages"),
+            f"{args.prefix}/detectedImages",
+            lambda msg: self.callback(msg, f"{args.prefix}/detectedImages"),
             10,
         )
         self.create_subscription(
             Temperature,
-            "/temperature",
-            lambda msg: self.callback(msg, "/temperature"),
+            f"{args.prefix}/temperature",
+            lambda msg: self.callback(msg, f"{args.prefix}/temperature"),
             10,
         )
         self.create_subscription(
             RelativeHumidity,
-            "/humidity",
-            lambda msg: self.callback(msg, "/humidity"),
+            f"{args.prefix}/humidity",
+            lambda msg: self.callback(msg, f"{args.prefix}/humidity"),
             10,
         )
         self.create_subscription(
             BatteryState,
-            "/status/battery",
-            lambda msg: self.callback(msg, "/status/battery"),
+            f"{args.prefix}/status/battery",
+            lambda msg: self.callback(msg, f"{args.prefix}/status/battery"),
             10,
         )
         self.create_subscription(
             DiagnosticArray,
-            "/status/tempSensor",
-            lambda msg: self.callback(msg, "/status/tempSensor"),
+            f"{args.prefix}/status/tempSensor",
+            lambda msg: self.callback(msg, f"{args.prefix}/status/tempSensor"),
             10,
         )
         self.create_subscription(
             PointStamped,
-            "/status/position",
-            lambda msg: self.callback(msg, "/status/position"),
+            f"{args.prefix}/status/position",
+            lambda msg: self.callback(msg, f"{args.prefix}/status/position"),
             10,
         )
 
     def __del__(self):
         print("Recorded Delays:")
         for topic, values in self.records.items():
-            print(
-                f"{topic}: {(sum(values) / len(values) * 1000):.5f}ms - with {len(values)} samples"
-            )
+            print(f"{topic} - {len(values)} samples:")
+            print(f"mean: {(statistics.mean(values) * 1000):.5f}ms")
+            print(f"stdev: {(statistics.stdev(values) * 1000):.5f}ms\n")
 
     def callback(self, msg, topic):
         now = time()
@@ -77,8 +79,18 @@ class DelayRecorder(Node):
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "--prefix",
+        help="prefix for topics to subscribe to",
+        default="",
+    )
+    args = parser.parse_args()
+
     rclpy.init(args=None)
-    node = DelayRecorder()
+    node = DelayRecorder(args)
 
     try:
         rclpy.spin(node)
