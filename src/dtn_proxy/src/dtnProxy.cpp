@@ -45,9 +45,11 @@ private:
             config.ros.servers.begin(), config.ros.servers.end(), std::back_inserter(result),
             [](auto const& topic) { return std::pair(topic.name, DtnMsgType::RESPONSE); });
 
-        std::transform(
-            config.ros.clients.begin(), config.ros.clients.end(), std::back_inserter(result),
-            [](auto const& topic) { return std::pair(topic.name, DtnMsgType::REQUEST); });
+        std::transform(config.ros.clients.begin(), config.ros.clients.end(),
+                       std::back_inserter(result), [&](auto const& topic) {
+                           return std::pair(config.ros.nodePrefix + topic.name,
+                                            DtnMsgType::REQUEST);
+                       });
         return result;
     }
 

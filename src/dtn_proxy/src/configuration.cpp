@@ -57,8 +57,9 @@ RosConfig ConfigurationReader::initRosConfig(const toml::value& config, Logger& 
     RosConfig rosConfig;
     bool foundTopics = false;
     if (config.contains("ros")) {
+        const auto ros = toml::find(config, "ros");
+        rosConfig.nodePrefix = toml::find_or<std::string>(ros, "nodePrefix", "");
         try {
-            const auto ros = toml::find(config, "ros");
             if (ros.contains("sub")) {
                 rosConfig.subTopics = toml::find<std::vector<RosConfig::RosTopic>>(ros, "sub");
                 foundTopics = true;

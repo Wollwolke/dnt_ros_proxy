@@ -33,11 +33,11 @@ void TopicManager::topicCallback(const std::string& topic, const std::string& ty
                                             : DtndClient::BundleFlags::NO_FLAGS;
 
         DtndClient::Message dtnMsg{
-            std::move(payload),  // std::vector<uint8_t> payload,
-            topic,               // std::string endpoint,
-            DtnMsgType::TOPIC,   // ros::DtnMsgType msgType,
-            bundleFlags,         // uint64_t bundleFlags = 0,
-            pMsg.lifetime,       // uint64_t lifetime = 0,
+            std::move(payload),       // std::vector<uint8_t> payload,
+            config.nodePrefix + topic,  // std::string endpoint,
+            DtnMsgType::TOPIC,          // ros::DtnMsgType msgType,
+            bundleFlags,                // uint64_t bundleFlags = 0,
+            pMsg.lifetime,              // uint64_t lifetime = 0,
         };
 
         dtn->sendMessage(dtnMsg);

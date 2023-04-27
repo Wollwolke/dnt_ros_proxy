@@ -29,7 +29,7 @@ void ServiceManager::responseCallback(const std::string& topic, uint8_t requestI
     auto rosMsgSize = buildDtnPayload(payload, response, requestId);
     if (stats) stats->rosReceived(topic, "unknown", rosMsgSize, DtnMsgType::RESPONSE);
 
-    DtndClient::Message dtnMsg{std::move(payload), topic, DtnMsgType::RESPONSE};
+    DtndClient::Message dtnMsg{std::move(payload), config.nodePrefix + topic, DtnMsgType::RESPONSE};
     dtn->sendMessage(dtnMsg);
     if (stats) stats->dtnSent(topic, "unknown", dtnMsg.payload.size(), DtnMsgType::RESPONSE);
 }
@@ -67,21 +67,28 @@ void ServiceManager::onDtnRequest(const std::string& topic, std::vector<uint8_t>
     };
     auto sharedRequest = std::make_shared<rclcpp::SerializedMessage>(request);
 
-    auto responseReceivedCallback = [this, topic, headerId](SharedFuture future) {
+    auto localTopic = topic;
+    if (topic.rfind(config.nodePrefix, 0) == 0) {
+        // topic starts with prefix
+        localTopic.erase(0, config.nodePrefix.size());
+    }
+
+    auto responseReceivedCallback = [this, localTopic, headerId](SharedFuture future) {
         const auto responseMsg = future.get();
-        responseCallback(topic, headerId, responseMsg);
+        responseCallback(localTopic, headerId, responseMsg);
     };
 
     using namespace std::chrono_literals;
-    while (!clients.at(topic)->wait_for_service(5s)) {
-        log->INFO() << "Service " << topic << " not available, waiting...";
+    while (!clients.at(localTopic)->wait_for_service(5s)) {
+        log->INFO() << "Service " << localTopic << " not available, waiting...";
     }
 
-    clients.at(topic)->async_send_request(sharedRequest, responseReceivedCallback);
+    clients.at(localTopic)->async_send_request(sharedRequest, responseReceivedCallback);
 
     // TODO: find msgType in rosConfig
     if (stats) {
-        stats->rosSent(topic, "unknown", static_cast<uint32_t>(data.size()) + CDR_MSG_SIZE_OFFSET,
+        stats->rosSent(localTopic, "unknown",
+                       static_cast<uint32_t>(data.size()) + CDR_MSG_SIZE_OFFSET,
                        DtnMsgType::REQUEST);
     }
 }
