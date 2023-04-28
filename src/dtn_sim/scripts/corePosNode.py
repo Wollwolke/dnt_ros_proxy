@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+"""Publishes position of a node in core emulator in ROS"""
+
+import argparse
 import subprocess
 import threading
 
@@ -11,8 +14,9 @@ from geometry_msgs.msg import TransformStamped, PointStamped
 
 
 class CorePosition(Node):
-    def __init__(self):
+    def __init__(self, nodeName):
         super().__init__("core_pos_publisher")
+        self.nodeName = nodeName
         self.pos = (0, 0)
         self.lock = threading.Lock()
         self.tf_broadcaster = TransformBroadcaster(self)
@@ -23,7 +27,7 @@ class CorePosition(Node):
 
 
     def getNodePos(self):
-        corePos = subprocess.run(["core-pos", "robot"], stdout=subprocess.PIPE)
+        corePos = subprocess.run(["core-pos", self.nodeName], stdout=subprocess.PIPE)
         try:
             corePosOutput = corePos.stdout.decode("utf-8").split("\n")
             x = float(corePosOutput[1].split()[1][:-1:])
@@ -31,7 +35,7 @@ class CorePosition(Node):
             with self.lock:
                 self.pos = (x, y)
         except IndexError as _:
-            raise ValueError("Node robot doesn't exist in current simulation.")
+            raise ValueError(f"Node {self.nodeName} doesn't exist in current simulation.")
 
 
     def updatePos(self):
@@ -70,9 +74,16 @@ class CorePosition(Node):
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "node", help="Name of the node in core emulator"
+    )
+    args, _ = parser.parse_known_args()
 
     rclpy.init(args=None)
-    node = CorePosition()
+    node = CorePosition(args.node)
 
     try:
         rclpy.spin(node)
