@@ -18,11 +18,9 @@ private:
 protected:
     struct CdrMsgHash {
         // !Only properly works with timestamped msgs!
-        std::size_t operator()(const rcl_serialized_message_t& msg,
-                               const std::string& topic) const noexcept {
+        std::size_t operator()(const rcl_serialized_message_t& msg) const noexcept {
             const char* data = reinterpret_cast<const char*>(msg.buffer);
             std::string hashOver(data, BYTES_FOR_HASH);
-            hashOver.append(topic);
             return std::hash<std::string>{}(hashOver);
             // return std::hash<std::string_view>{}(std::string_view(data, msg.buffer_length));
             // Hash over the whole msg doesn't work, because...

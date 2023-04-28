@@ -19,7 +19,7 @@ void TopicManager::topicCallback(const std::string& topic, const std::string& ty
                                  std::shared_ptr<rclcpp::SerializedMessage> msg) {
     auto rosMsgSize = getRosMsgSize(msg);
     if (stats) {
-        auto hash = CdrMsgHash{}(msg->get_rcl_serialized_message(), topic);
+        auto hash = CdrMsgHash{}(msg->get_rcl_serialized_message());
         stats->rosReceived(topic, type, rosMsgSize, DtnMsgType::TOPIC, hash);
     }
 
@@ -55,7 +55,7 @@ void TopicManager::dtnMsgCallback(const std::string& topic,
 
         // TODO: find msgType in rosConfig
         if (stats) {
-            auto hash = CdrMsgHash{}(pMsg.serializedMessage->get_rcl_serialized_message(), topic);
+            auto hash = CdrMsgHash{}(pMsg.serializedMessage->get_rcl_serialized_message());
             stats->rosSent(topic, "unknown", getRosMsgSize(pMsg.serializedMessage),
                            DtnMsgType::TOPIC, hash);
         }
