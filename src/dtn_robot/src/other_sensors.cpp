@@ -19,7 +19,7 @@ public:
         radiationDist = std::uniform_int_distribution<>(10, 60);
 
         pressurePublisher =
-            this->create_publisher<sensor_msgs::msg::FluidPressure>("atm_pressure", 10);
+            this->create_publisher<sensor_msgs::msg::FluidPressure>("atmPressure", 10);
         radiationPublisher = this->create_publisher<radiation_msgs::msg::DoseRate>("radiation", 10);
 
         pressureMsg.header.frame_id = "imu_link";
