@@ -15,16 +15,15 @@ std::string StatsRecorder::timestamp() {
     using Clock = std::chrono::system_clock;
 
     auto now = Clock::now();
-    auto seconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
-    auto fraction = now - seconds;
-    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(fraction);
-
-    time_t cnow = Clock::to_time_t(now);
+    auto epoch_seconds = std::chrono::system_clock::to_time_t(now);
+    // Convert back to a time_point to get the time truncated to whole seconds
+    auto truncated = std::chrono::system_clock::from_time_t(epoch_seconds);
+    auto delta_us = std::chrono::duration_cast<std::chrono::microseconds>(now - truncated).count();
 
     std::stringstream timeStream;
-    timeStream << std::put_time(std::localtime(&cnow), "%FT%T.");
-    timeStream << milliseconds.count();
-    timeStream << std::put_time(std::localtime(&cnow), "%z") << ";";
+    timeStream << std::put_time(std::localtime(&epoch_seconds), "%FT%T");
+    timeStream << "." << std::fixed << std::setw(6) << std::setfill('0') << delta_us;
+    timeStream << std::put_time(std::localtime(&epoch_seconds), "%z") << ";";
 
     return timeStream.str();
 }
