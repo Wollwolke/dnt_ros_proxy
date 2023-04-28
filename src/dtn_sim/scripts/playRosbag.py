@@ -161,7 +161,7 @@ def main():
         dest="topic",
         help="Topics to replay, separated by space. If none specified, all topics will be replayed.",
     )
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
 
     rclpy.init(args=None)
     player = TimelyRosbagPlayer(args)
