@@ -63,7 +63,7 @@ class DelayRecorder(Node):
         )
 
     def __del__(self):
-        print("Recorded Delays:")
+        print("\nRecorded Delays:")
         for topic, values in self.records.items():
             print(f"{topic} - {len(values)} samples:")
             print(f"mean: {(statistics.mean(values) * 1000):.5f}ms")
@@ -74,6 +74,7 @@ class DelayRecorder(Node):
         try:
             msgTime = Time.from_msg(msg.header.stamp)
             diff = (now - msgTime).nanoseconds * 1e-9
+            print(f"$ {topic} {diff}")
             self.records[topic].append(diff)
         except AttributeError as err:
             print(f"Error reading timestep on topic {topic}: {err}")
