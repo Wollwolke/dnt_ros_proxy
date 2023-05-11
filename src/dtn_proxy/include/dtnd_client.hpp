@@ -42,6 +42,9 @@ private:
     std::vector<DtnEndpoint> endpointsToRegister;
     std::mutex endpointsMutex;
 
+    std::vector<uint8_t> latestRemoteConfig;
+    std::mutex remoteConfigMutex;
+
     Result getRequest(std::string path);
     static void buildEndpointId(std::string& endpoint, ros::DtnMsgType type);
     bool getLocalNodeId();
@@ -71,6 +74,7 @@ public:
 
     void registerEndpoints(const std::vector<DtnEndpoint>& endpoints);
     void sendMessage(const Message& dtnMsg);
+    void sendRemoteConfig(std::vector<uint8_t> config = {});
 };
 
 }  // namespace dtnproxy

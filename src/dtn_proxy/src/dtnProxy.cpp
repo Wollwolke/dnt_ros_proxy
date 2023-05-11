@@ -2,6 +2,7 @@
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <functional>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/node.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -73,7 +74,8 @@ private:
 public:
     DtnProxy() : Node(DEFAULT_NODE_NAME) {
         loadConfig();
-        auto remoteConfig = conf::ConfigurationReader::getRemoteConfig(config.ros);
+        auto remoteConfig =
+            nlohmann::json::to_cbor(conf::ConfigurationReader::getRemoteConfig(config.ros));
 
         dtn = std::make_shared<DtndClient>(config.dtn);
         ros = std::make_unique<ros::Transfer>(*this, config.ros, dtn);
@@ -86,6 +88,7 @@ public:
 
         auto dtnEndpoints = buildDtnEndpoints();
         dtn->registerEndpoints(dtnEndpoints);
+        dtn->sendRemoteConfig(remoteConfig);
 
         ros->initClients();
 

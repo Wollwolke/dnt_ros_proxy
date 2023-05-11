@@ -6,6 +6,7 @@ namespace dtnproxy {
 
 DtndClient::DtndClient(const conf::DtnConfig& config) : config(config) {
     messageHandler = [](const data::WsReceive&) {};
+    endpointsToRegister.emplace_back("remoteConfig", ros::DtnMsgType::INTERNAL);
 
     http = std::make_unique<httplib::Client>(config.address, config.port);
     ws = std::make_unique<WsClient>();
@@ -26,6 +27,7 @@ void DtndClient::onConnectionStatus(const bool success) {
         lock.unlock();
         log->INFO() << "WS Connection to dtnd opened.";
         registerKnownEndpoints();
+        sendRemoteConfig();
     } else {
         wsStatus = WsState::ERROR;
         log->WARN() << "WS Connection to dtnd failed.";
@@ -44,7 +46,7 @@ DtndClient::Result::Result(bool success, std::string content)
     : success(success), content(content) {}
 
 bool DtndClient::registerSubscribeEndpoints() {
-    std::lock_guard<std::mutex> lock(stateMutex);
+    std::lock_guard<std::mutex> lock(endpointsMutex);
 
     for (auto& [eid, type] : endpointsToRegister) {
         auto typedEndpoint = eid;
@@ -71,6 +73,9 @@ void DtndClient::buildEndpointId(std::string& endpoint, ros::DtnMsgType type) {
             break;
         case Type::RESPONSE:
             endpoint.insert(0, "rr_");
+            break;
+        case Type::INTERNAL:
+            endpoint.insert(0, "proxy_");
             break;
         case Type::INVALID:
         default:
@@ -100,8 +105,8 @@ void DtndClient::registerKnownEndpoints() {
 
 void DtndClient::registerEndpoints(const std::vector<DtnEndpoint>& endpoints) {
     {
-        std::lock_guard<std::mutex> lock(stateMutex);
-        endpointsToRegister = endpoints;
+        std::lock_guard<std::mutex> lock(endpointsMutex);
+        endpointsToRegister.insert(endpointsToRegister.end(), endpoints.begin(), endpoints.end());
     }
     registerKnownEndpoints();
 }
@@ -129,9 +134,22 @@ void DtndClient::sendMessage(const Message& dtnMsg) {
         dtnMsg.bundleFlags,                         // uint64_t bundle_flags,
         dtnMsg.payload,                             // std::vector<uint8_t>& data,
     };
-    nlohmann::json jsonMsg = msg;
-    std::vector<uint8_t> cborMsg = nlohmann::json::to_cbor(jsonMsg);
-    ws->send(cborMsg);
+    std::vector<uint8_t> cborMsg = nlohmann::json::to_cbor(msg);
+    ws->send(std::move(cborMsg));
+}
+
+void DtndClient::sendRemoteConfig(std::vector<uint8_t> config) {
+    std::lock_guard<std::mutex> lock(remoteConfigMutex);
+    if (!config.empty()) {
+        latestRemoteConfig = std::move(config);
+    }
+
+    // TODO: find appropriate lifetime
+    if (!latestRemoteConfig.empty()) {
+        Message msg = {latestRemoteConfig, "remoteConfig", ros::DtnMsgType::INTERNAL,
+                       BundleFlags::BUNDLE_REMOVE_OLDER_BUNDLES, 99999};
+        sendMessage(msg);
+    }
 }
 
 DtndClient::Result DtndClient::getRequest(std::string path) {
