@@ -1,6 +1,7 @@
 #pragma once
 
 #include <exception>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 
@@ -12,6 +13,12 @@
 
 namespace dtnproxy::conf {
 
+using Module = struct Module {
+    pipeline::Module enumId;
+    std::vector<std::string> params;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Module, enumId, params)
+
 using RosConfig = struct RosConfig {
     using RosTopic = struct RosTopic {
         std::string name;
@@ -20,10 +27,6 @@ using RosConfig = struct RosConfig {
         void from_toml(const toml::value& v);
     };
     using RosService = RosTopic;
-    using Module = struct Module {
-        pipeline::Module name;
-        std::vector<std::string> params;
-    };
 
     std::vector<RosTopic> subTopics;
     std::vector<RosTopic> pubTopics;
@@ -47,6 +50,26 @@ using Config = struct Config {
     RosConfig ros;
 };
 
+using RemoteConfig = struct RemoteConfig {
+    using RosInterface = struct RosInterface {
+        bool isService;
+        std::string topic;
+        std::string type;
+        std::vector<Module> modules;
+        RosInterface(bool isService, std::string topic, std::string type,
+                     std::vector<Module> modules)
+            : isService(isService),
+              topic(std::move(topic)),
+              type(std::move(type)),
+              modules(std::move(modules)){};
+        RosInterface() = default;
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(RemoteConfig::RosInterface, isService, topic, type, modules)
+    };
+
+    std::vector<RosInterface> interfaces;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(RemoteConfig, interfaces)
+
 class ConfigurationReader {
 private:
     static DtnConfig initDtnConfig(const toml::value& config, Logger& log);
@@ -57,6 +80,7 @@ private:
 
 public:
     static Config readConfigFile(const std::string& filePath);
+    static RemoteConfig getRemoteConfig(const RosConfig& rosConfig);
 };
 
 class ConfigException : public std::exception {

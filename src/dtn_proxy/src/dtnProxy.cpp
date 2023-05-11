@@ -73,6 +73,7 @@ private:
 public:
     DtnProxy() : Node(DEFAULT_NODE_NAME) {
         loadConfig();
+        auto remoteConfig = conf::ConfigurationReader::getRemoteConfig(config.ros);
 
         dtn = std::make_shared<DtndClient>(config.dtn);
         ros = std::make_unique<ros::Transfer>(*this, config.ros, dtn);

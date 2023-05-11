@@ -13,7 +13,7 @@ namespace dtnproxy::pipeline {
 
 class Pipeline {
 private:
-    using PipelineConfig = std::map<std::string, std::vector<conf::RosConfig::Module>>;
+    using PipelineConfig = std::map<std::string, std::vector<conf::Module>>;
     using msgStorePtr_t = std::shared_ptr<std::map<std::string, PipelineMessage>>;
     using injectMsgCb_t = std::function<void(const std::string& topic,
                                              std::shared_ptr<rclcpp::SerializedMessage> msg)>;

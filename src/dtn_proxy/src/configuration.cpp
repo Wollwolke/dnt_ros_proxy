@@ -31,6 +31,19 @@ Config ConfigurationReader::readConfigFile(const std::string& filePath) {
     return cfg;
 }
 
+RemoteConfig ConfigurationReader::getRemoteConfig(const RosConfig& rosConfig) {
+    // TODO: manage services
+    RemoteConfig remoteConfig;
+    for (const auto& [topic, type, profile] : rosConfig.subTopics) {
+        std::vector<Module> modules;
+        if (!profile.empty()) {
+            modules = rosConfig.profiles.at(profile);
+        }
+        remoteConfig.interfaces.emplace_back(false, topic, type, modules);
+    }
+    return remoteConfig;
+}
+
 DtnConfig ConfigurationReader::initDtnConfig(const toml::value& config, Logger& log) {
     DtnConfig dtnConfig;
     if (config.contains("dtn")) {
@@ -107,12 +120,12 @@ void ConfigurationReader::initProfilesConfig(const toml::value& config, RosConfi
     const auto profiles = toml::find<std::vector<toml::value>>(config, "profile");
     for (const auto& profile : profiles) {
         auto profileName = toml::find<std::string>(profile, "name");
-        std::vector<RosConfig::Module> modules;
+        std::vector<Module> modules;
         const auto tomlModules = toml::find<std::vector<toml::value>>(profile, "module");
         for (const auto& module : tomlModules) {
-            RosConfig::Module mod;
+            Module mod;
             auto moduleName = toml::find<std::string>(module, "name");
-            mod.name = resolveStringModule(moduleName);
+            mod.enumId = resolveStringModule(moduleName);
             mod.params = toml::find<std::vector<std::string>>(module, "params");
             modules.push_back(mod);
         }
