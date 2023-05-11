@@ -1,7 +1,7 @@
 #pragma once
-#include <atomic>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 
@@ -12,6 +12,8 @@ namespace dtnproxy {
 class WsClient {
 private:
     static constexpr auto WS_PING_RATE = 5;
+    static constexpr auto WS_PONG_TIMEOUT = 2000;
+    static constexpr auto RECONNECT_WATE_TIME = 5;
     enum Status : uint8_t;
 
     using client = websocketpp::client<websocketpp::config::asio_client>;
@@ -29,11 +31,13 @@ private:
     client endpoint;
     Metadata metadata;
     std::shared_ptr<websocketpp::lib::thread> thread;
-    std::atomic<bool> shutdownRequested = false;
+    std::mutex pingLoopMutex;
+    std::condition_variable pingLoopCv;
 
     std::unique_ptr<Logger> log;
 
     void pingLoop();
+    void tryReconnect(const std::string& uri);
 
 public:
     WsClient();
@@ -55,7 +59,7 @@ public:
     void onPongTimeout(websocketpp::connection_hdl hdl, std::string payload);
 
     friend std::ostream& operator<<(std::ostream& out, const Metadata& data);
-    friend std::ostream& operator<<(std::ostream& os, const Status& status);
+    friend std::ostream& operator<<(std::ostream& out, const Status& status);
 };
 
 enum WsClient::Status : uint8_t { UNKNOWN, CLOSED, CONNECTING, OPEN, FAILED };

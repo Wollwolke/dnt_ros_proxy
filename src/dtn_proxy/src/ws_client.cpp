@@ -1,23 +1,42 @@
 #include "ws_client.hpp"
 
 #include <chrono>
+#include <condition_variable>
 #include <functional>
 #include <iostream>
+#include <mutex>
 #include <thread>
 
 namespace dtnproxy {
 
 void WsClient::pingLoop() {
     websocketpp::lib::error_code errorCode;
+    auto timepoint = std::chrono::system_clock::now() + std::chrono::seconds(WS_PING_RATE);
 
-    while (!shutdownRequested) {
-        endpoint.ping(metadata.hdl, "wolke", errorCode);
+    while (true) {
+        std::unique_lock<std::mutex> lock(pingLoopMutex);
+        auto reason = pingLoopCv.wait_until(lock, timepoint);
 
-        if (errorCode) {
-            log->ERR() << "Error sending WS Ping: " << errorCode.message();
+        // stop ping thread, when connection isn't open anymore
+        if (Status::OPEN != metadata.status) {
+            return;
         }
-        std::this_thread::sleep_for(std::chrono::seconds(WS_PING_RATE));
+
+        if (std::cv_status::timeout == reason) {
+            timepoint = std::chrono::system_clock::now() + std::chrono::seconds(WS_PING_RATE);
+            endpoint.ping(metadata.hdl, "wolke", errorCode);
+
+            if (errorCode) {
+                log->ERR() << "Error sending WS Ping: " << errorCode.message();
+            }
+        }
     }
+}
+
+void WsClient::tryReconnect(const std::string& uri) {
+    std::this_thread::sleep_for(std::chrono::seconds(RECONNECT_WATE_TIME));
+    log->INFO() << "Trying to reconnect...";
+    connect(uri);
 }
 
 WsClient::WsClient() {
@@ -28,7 +47,6 @@ WsClient::WsClient() {
 
     metadata.status = Status::UNKNOWN;
 
-    // TODO: check ws logging
     // Disable logging
     endpoint.clear_access_channels(websocketpp::log::alevel::all);
     endpoint.clear_error_channels(websocketpp::log::elevel::all);
@@ -56,6 +74,7 @@ void WsClient::setConnectionStatusHandler(connectionStatusHandler_t h) {
 bool WsClient::connect(const std::string& uri) {
     websocketpp::lib::error_code errorCode;
 
+    endpoint.reset();
     client::connection_ptr conReq = endpoint.get_connection(uri, errorCode);
 
     if (errorCode) {
@@ -64,8 +83,13 @@ bool WsClient::connect(const std::string& uri) {
     }
 
     metadata.hdl = conReq->get_handle();
-    metadata.status = Status::CONNECTING;
 
+    {
+        std::lock_guard<std::mutex> lock(pingLoopMutex);
+        metadata.status = Status::CONNECTING;
+    }
+
+    conReq->set_pong_timeout(WS_PONG_TIMEOUT);
     conReq->set_open_handler(std::bind(&WsClient::onOpen, this, &endpoint, std::placeholders::_1));
     conReq->set_fail_handler(std::bind(&WsClient::onFail, this, &endpoint, std::placeholders::_1));
     conReq->set_message_handler(
@@ -83,15 +107,20 @@ bool WsClient::connect(const std::string& uri) {
 }
 
 void WsClient::close(websocketpp::close::status::value code) {
+    std::lock_guard<std::mutex> lock(pingLoopMutex);
+
     if (metadata.status == Status::OPEN) {
         log->INFO() << "Closing Websocket connection.";
 
-        shutdownRequested = true;
         websocketpp::lib::error_code errorCode;
         endpoint.close(metadata.hdl, code, "", errorCode);
         if (errorCode) {
             log->ERR() << "Error initiating close: " << errorCode.message();
+            metadata.status = Status::UNKNOWN;
+        } else {
+            metadata.status = Status::CLOSED;
         }
+        pingLoopCv.notify_all();
     }
 }
 
@@ -117,45 +146,62 @@ void WsClient::send(const std::vector<uint8_t>& msg) {
 }
 
 void WsClient::onOpen(client* /*c*/, websocketpp::connection_hdl /*hdl*/) {
-    metadata.status = Status::OPEN;
-    connectionStatusHandler(true);
+    {
+        std::lock_guard<std::mutex> lock(pingLoopMutex);
+        metadata.status = Status::OPEN;
+    }
+    metadata.errorReason.clear();
 
     // start ping loop
     std::thread pingThread(&WsClient::pingLoop, this);
     pingThread.detach();
 
-    // TODO: check response header
-    // client::connection_ptr con = c->get_con_from_hdl(hdl);
-    // server = con->get_response_header("Server");
+    connectionStatusHandler(true);
     log->INFO() << metadata;
 }
 
 void WsClient::onFail(client* c, websocketpp::connection_hdl hdl) {
     client::connection_ptr con = c->get_con_from_hdl(hdl);
-    metadata.status = Status::FAILED;
-    connectionStatusHandler(false);
+    {
+        std::lock_guard<std::mutex> lock(pingLoopMutex);
+        metadata.status = Status::FAILED;
+    }
+    pingLoopCv.notify_all();
+
     metadata.errorReason = con->get_ec().message();
-    // TODO: check response header
-    // server = con->get_response_header("Server");
+    connectionStatusHandler(false);
     log->INFO() << metadata;
+
+    tryReconnect(con->get_uri()->str());
 }
 
 void WsClient::onClose(client* c, websocketpp::connection_hdl hdl) {
-    shutdownRequested = true;
-    metadata.status = Status::CLOSED;
+    {
+        std::lock_guard<std::mutex> lock(pingLoopMutex);
+        metadata.status = Status::CLOSED;
+    }
+    pingLoopCv.notify_all();
+    connectionStatusHandler(false);
+
     client::connection_ptr con = c->get_con_from_hdl(hdl);
+    auto localCloseReason = con->get_local_close_code();
     std::stringstream s;
     s << "remote code: " << con->get_remote_close_code() << " ("
       << websocketpp::close::status::get_string(con->get_remote_close_code())
       << "), remote reason: " << con->get_remote_close_reason()
-      << "\t-\t local code: " << con->get_local_close_code() << " ("
+      << "\t-\t local code: " << localCloseReason << " ("
       << websocketpp::close::status::get_string(con->get_local_close_code())
       << "), local reason: " << con->get_local_close_reason();
     metadata.errorReason = s.str();
     log->INFO() << metadata;
+
+    if (websocketpp::close::status::going_away != localCloseReason &&
+        websocketpp::close::status::normal != localCloseReason) {
+        tryReconnect(con->get_uri()->str());
+    }
 }
 
-void WsClient::onMessage(websocketpp::connection_hdl, client::message_ptr msg) {
+void WsClient::onMessage(websocketpp::connection_hdl /*hdl*/, client::message_ptr msg) {
     std::string payload = msg->get_payload();
 
     // TODO: don't rely on msg type to check for data
@@ -173,8 +219,19 @@ void WsClient::onPong(websocketpp::connection_hdl /*hdl*/, std::string payload) 
     log->DBG() << "Received pong with payload: " << payload;
 }
 
-void WsClient::onPongTimeout(websocketpp::connection_hdl /*hdl*/, std::string payload) {
-    log->ERR() << "Pong timeout with payload: " << payload;
+void WsClient::onPongTimeout(websocketpp::connection_hdl hdl, std::string payload) {
+    log->WARN() << "Pong timeout with payload: " << payload;
+    {
+        std::lock_guard<std::mutex> lock(pingLoopMutex);
+        metadata.status = Status::FAILED;
+    }
+    pingLoopCv.notify_all();
+    connectionStatusHandler(false);
+
+    auto con = endpoint.get_con_from_hdl(hdl);
+    auto uri = con->get_uri()->str();
+
+    tryReconnect(uri);
 }
 
 std::ostream& operator<<(std::ostream& out, const WsClient::Metadata& data) {
@@ -183,21 +240,21 @@ std::ostream& operator<<(std::ostream& out, const WsClient::Metadata& data) {
     return out;
 }
 
-std::ostream& operator<<(std::ostream& os, const WsClient::Status& status) {
+std::ostream& operator<<(std::ostream& out, const WsClient::Status& status) {
     switch (status) {
         case WsClient::Status::UNKNOWN:
-            return os << "Unknwon";
+            return out << "Unknwon";
         case WsClient::Status::CLOSED:
-            return os << "Closed";
+            return out << "Closed";
         case WsClient::Status::CONNECTING:
-            return os << "Connecting";
+            return out << "Connecting";
         case WsClient::Status::OPEN:
-            return os << "Open";
+            return out << "Open";
         case WsClient::Status::FAILED:
-            return os << "Failed";
+            return out << "Failed";
             // omit default case to trigger compiler warning for missing cases
     };
-    return os << static_cast<std::uint8_t>(status);
+    return out << static_cast<std::uint8_t>(status);
 }
 
 }  // namespace dtnproxy

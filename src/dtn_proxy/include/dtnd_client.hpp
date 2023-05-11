@@ -34,18 +34,19 @@ private:
     std::unique_ptr<WsClient> ws;
     std::unique_ptr<Logger> log;
 
-    WsState wsConnected = WsState::NOTSET;
-    std::mutex wsMutex;
-    std::condition_variable wsCV;
+    WsState wsStatus = WsState::NOTSET;
+    std::mutex stateMutex;
 
     messageHandler_t messageHandler;
     std::string localNodeId;
     std::vector<DtnEndpoint> endpointsToRegister;
+    std::mutex endpointsMutex;
 
     Result getRequest(std::string path);
+    static void buildEndpointId(std::string& endpoint, ros::DtnMsgType type);
     bool getLocalNodeId();
     bool registerSubscribeEndpoints();
-    void buildEndpointId(std::string& endpoint, ros::DtnMsgType type);
+    void registerKnownEndpoints();
 
 public:
     using Message = struct Message {
@@ -68,7 +69,7 @@ public:
     void onConnectionStatus(bool success);
     void onBundle(const std::string& bundle);
 
-    bool connect(const std::vector<DtnEndpoint>& endpoints);
+    void registerEndpoints(const std::vector<DtnEndpoint>& endpoints);
     void sendMessage(const Message& dtnMsg);
 };
 

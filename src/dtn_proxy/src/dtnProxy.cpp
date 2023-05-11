@@ -84,7 +84,7 @@ public:
         ros->initServers();
 
         auto dtnEndpoints = buildDtnEndpoints();
-        if (!dtn->connect(dtnEndpoints)) fatalShutdown("Error connecting to dtnd!");
+        dtn->registerEndpoints(dtnEndpoints);
 
         ros->initClients();
 

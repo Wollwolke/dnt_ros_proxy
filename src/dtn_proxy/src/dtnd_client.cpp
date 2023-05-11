@@ -20,15 +20,16 @@ DtndClient::DtndClient(const conf::DtnConfig& config) : config(config) {
 void DtndClient::setMessageHandler(messageHandler_t h) { messageHandler = h; }
 
 void DtndClient::onConnectionStatus(const bool success) {
-    std::lock_guard<std::mutex> lock(wsMutex);
+    std::unique_lock<std::mutex> lock(stateMutex);
     if (success) {
-        wsConnected = WsState::CONNECTED;
+        wsStatus = WsState::CONNECTED;
+        lock.unlock();
         log->INFO() << "WS Connection to dtnd opened.";
+        registerKnownEndpoints();
     } else {
-        wsConnected = WsState::ERROR;
+        wsStatus = WsState::ERROR;
         log->WARN() << "WS Connection to dtnd failed.";
     }
-    wsCV.notify_all();
 }
 
 void DtndClient::onBundle(const std::string& bundle) {
@@ -43,6 +44,8 @@ DtndClient::Result::Result(bool success, std::string content)
     : success(success), content(content) {}
 
 bool DtndClient::registerSubscribeEndpoints() {
+    std::lock_guard<std::mutex> lock(stateMutex);
+
     for (auto& [eid, type] : endpointsToRegister) {
         auto typedEndpoint = eid;
         buildEndpointId(typedEndpoint, type);
@@ -75,26 +78,43 @@ void DtndClient::buildEndpointId(std::string& endpoint, ros::DtnMsgType type) {
     }
 }
 
-bool DtndClient::connect(const std::vector<DtnEndpoint>& endpoints) {
-    endpointsToRegister = endpoints;
+void DtndClient::registerKnownEndpoints() {
+    {
+        std::lock_guard<std::mutex> lock(stateMutex);
+        if (WsState::CONNECTED != wsStatus) {
+            log->FATAL() << "Can't register endpionts, not connection to dtnd!";
+            return;
+        }
+    }
 
-    // wait for WS connection
-    std::unique_lock<std::mutex> lock(wsMutex);
-    wsCV.wait(lock, [this] { return WsState::NOTSET != wsConnected; });
-    if (wsConnected) {
-        // Set WS to cbor data mode
-        ws->send("/data");
+    // Set WS to cbor data mode
+    ws->send("/data");
 
-        bool ok = true;
-        ok &= getLocalNodeId();
-        ok &= registerSubscribeEndpoints();
-        return ok;
-    } else {
-        return false;
+    bool ok = true;
+    ok &= getLocalNodeId();
+    ok &= registerSubscribeEndpoints();
+    if (!ok) {
+        log->FATAL() << "Error registering endopints!";
     }
 }
 
+void DtndClient::registerEndpoints(const std::vector<DtnEndpoint>& endpoints) {
+    {
+        std::lock_guard<std::mutex> lock(stateMutex);
+        endpointsToRegister = endpoints;
+    }
+    registerKnownEndpoints();
+}
+
 void DtndClient::sendMessage(const Message& dtnMsg) {
+    {
+        std::lock_guard<std::mutex> lock(stateMutex);
+        if (WsState::CONNECTED != wsStatus) {
+            log->FATAL() << "Can't send message, not connection to dtnd!";
+            return;
+        }
+    }
+
     const auto MS_IN_SECOND = 1000;
 
     auto typedEndpoint = dtnMsg.endpoint;
