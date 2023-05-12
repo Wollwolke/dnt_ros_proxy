@@ -25,6 +25,8 @@ private:
     injectMsgCb_t injectMsgCb;
     Direction direction;
 
+    void build(const std::vector<conf::Module>& modules, rclcpp::Node& nodeHandle);
+
 public:
     Pipeline(Direction dir, std::string msgType, std::string topic);
 
@@ -34,6 +36,8 @@ public:
                       rclcpp::Node& nodeHandle, msgStorePtr_t msgStore);
     void initPipeline(const PipelineConfig& config, const std::string& profile,
                       rclcpp::Node& nodeHandle, injectMsgCb_t injectMsgCb);
+    void initPipeline(const std::vector<conf::Module>& modules, rclcpp::Node& nodeHandle,
+                      injectMsgCb_t injectMsgCb);
     bool run(PipelineMessage& pMsg);
 };
 

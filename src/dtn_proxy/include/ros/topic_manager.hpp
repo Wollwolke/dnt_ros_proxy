@@ -24,15 +24,16 @@ private:
     void topicCallback(const std::string& topic, const std::string& type,
                        std::shared_ptr<rclcpp::SerializedMessage> msg);
     void dtnMsgCallback(const std::string& topic, std::shared_ptr<rclcpp::SerializedMessage> msg,
-                        bool skipPipeline = false);
+                        const std::string& src, bool skipPipeline = false);
 
 public:
     TopicManager();
     TopicManager(rclcpp::Node& nodeHandle, conf::RosConfig config, std::shared_ptr<DtndClient> dtn,
                  const std::unique_ptr<Logger>& log);
 
-    void onDtnMessage(const std::string& topic, std::vector<uint8_t>& data);
-    void initPublisher();
+    void onDtnMessage(const std::string& topic, std::vector<uint8_t>& data, const std::string& src);
+    void onInternalMsg(const std::string& endpoint, std::vector<uint8_t>& data,
+                       const std::string& src);
     void initSubscriber();
 };
 

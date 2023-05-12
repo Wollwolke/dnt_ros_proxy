@@ -29,7 +29,6 @@ using RosConfig = struct RosConfig {
     using RosService = RosTopic;
 
     std::vector<RosTopic> subTopics;
-    std::vector<RosTopic> pubTopics;
     std::vector<RosService> clients;
     std::vector<RosService> servers;
 
@@ -63,11 +62,11 @@ using RemoteConfig = struct RemoteConfig {
               type(std::move(type)),
               modules(std::move(modules)){};
         RosInterface() = default;
-        NLOHMANN_DEFINE_TYPE_INTRUSIVE(RemoteConfig::RosInterface, isService, topic, type, modules)
     };
 
     std::vector<RosInterface> interfaces;
 };
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(RemoteConfig::RosInterface, isService, topic, type, modules)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(RemoteConfig, interfaces)
 
 class ConfigurationReader {

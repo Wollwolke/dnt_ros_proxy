@@ -2,11 +2,14 @@
 
 #include <nlohmann/json.hpp>
 
+#include "common.hpp"
+
 namespace dtnproxy {
 
 DtndClient::DtndClient(const conf::DtnConfig& config) : config(config) {
     messageHandler = [](const data::WsReceive&) {};
-    endpointsToRegister.emplace_back("remoteConfig", ros::DtnMsgType::INTERNAL);
+    endpointsToRegister.insert(
+        buildEndpointId(common::REMOTE_CONFIG_ENDPOINT, ros::DtnMsgType::INTERNAL));
 
     http = std::make_unique<httplib::Client>(config.address, config.port);
     ws = std::make_unique<WsClient>();
@@ -38,8 +41,14 @@ void DtndClient::onBundle(const std::string& bundle) {
     nlohmann::json j = nlohmann::json::from_cbor(bundle);
     log->DBG() << j;
 
-    auto payload = j.get<data::WsReceive>();
-    messageHandler(payload);
+    auto wsBundle = j.get<data::WsReceive>();
+    removeNodeIdFromEndpoint(wsBundle.dst);
+    removeProtocolFromNodeId(wsBundle.src);
+
+    if (wsBundle.dst.rfind(common::dtnPrefixes::INTERNAL, 0) == 0) {
+        onInternalMsg(wsBundle);
+    }
+    messageHandler(wsBundle);
 }
 
 DtndClient::Result::Result(bool success, std::string content)
@@ -48,39 +57,39 @@ DtndClient::Result::Result(bool success, std::string content)
 bool DtndClient::registerSubscribeEndpoints() {
     std::lock_guard<std::mutex> lock(endpointsMutex);
 
-    for (auto& [eid, type] : endpointsToRegister) {
-        auto typedEndpoint = eid;
-        buildEndpointId(typedEndpoint, type);
-
-        auto result = getRequest("/register?" + typedEndpoint);
+    for (auto& endpointId : endpointsToRegister) {
+        auto result = getRequest("/register?" + endpointId);
         log->DBG() << result.content;
         if (!result.success) return false;
 
-        ws->send("/subscribe " + typedEndpoint);
+        ws->send("/subscribe " + endpointId);
     }
     return true;
 }
 
-void DtndClient::buildEndpointId(std::string& endpoint, ros::DtnMsgType type) {
+std::string DtndClient::buildEndpointId(const std::string& endpoint, ros::DtnMsgType type) {
+    using namespace common::dtnPrefixes;
     using Type = ros::DtnMsgType;
 
+    auto result = endpoint;
     switch (type) {
         case Type::TOPIC:
-            endpoint.insert(0, "rt_");
+            result.insert(0, TOPIC);
             break;
         case Type::REQUEST:
-            endpoint.insert(0, "rq_");
+            result.insert(0, REQUEST);
             break;
         case Type::RESPONSE:
-            endpoint.insert(0, "rr_");
+            result.insert(0, RESPONSE);
             break;
         case Type::INTERNAL:
-            endpoint.insert(0, "proxy_");
+            result.insert(0, INTERNAL);
             break;
         case Type::INVALID:
         default:
-            return;
+            break;
     }
+    return result;
 }
 
 void DtndClient::registerKnownEndpoints() {
@@ -91,7 +100,7 @@ void DtndClient::registerKnownEndpoints() {
             return;
         }
     }
-
+    // TODO: split this method
     // Set WS to cbor data mode
     ws->send("/data");
 
@@ -103,10 +112,49 @@ void DtndClient::registerKnownEndpoints() {
     }
 }
 
+void DtndClient::removeNodeIdFromEndpoint(std::string& endpoint) {
+    // remove first 6 chars (protocol)
+    endpoint.erase(0, 6);
+    auto stringPos = endpoint.find("/");
+    endpoint.erase(0, stringPos + 1);
+}
+
+void DtndClient::removeProtocolFromNodeId(std::string& nodeId) {
+    // remove first 6 chars (protocol) and ending '/'
+    // dtn://node1/ -> node1
+    nodeId.erase(0, 6);
+    nodeId.erase(nodeId.size() - 1);
+}
+
+void DtndClient::onInternalMsg(data::WsReceive bundle) {
+    if (bundle.dst.find(common::REMOTE_CONFIG_ENDPOINT) != std::string::npos) {
+        auto jConfig = nlohmann::json::from_cbor(bundle.data);
+        auto remoteConfig = jConfig.get<conf::RemoteConfig>();
+        std::unique_lock<std::mutex> lock(endpointsMutex);
+        for (auto const& interface : remoteConfig.interfaces) {
+            auto endpoint = interface.topic;
+            if ('/' != endpoint[0]) {
+                endpoint.insert(0, "/");
+            }
+            // endpoint.insert(0, "/" + bundle.src);
+            if (interface.isService) {
+                endpointsToRegister.insert(buildEndpointId(endpoint, ros::DtnMsgType::REQUEST));
+            } else {
+                endpointsToRegister.insert(buildEndpointId(endpoint, ros::DtnMsgType::TOPIC));
+            }
+        }
+        lock.unlock();
+        registerKnownEndpoints();
+    }
+    // No other internal msgs implemented
+}
+
 void DtndClient::registerEndpoints(const std::vector<DtnEndpoint>& endpoints) {
     {
         std::lock_guard<std::mutex> lock(endpointsMutex);
-        endpointsToRegister.insert(endpointsToRegister.end(), endpoints.begin(), endpoints.end());
+        for (const auto& endpoint : endpoints) {
+            endpointsToRegister.insert(buildEndpointId(endpoint.first, endpoint.second));
+        }
     }
     registerKnownEndpoints();
 }
@@ -122,8 +170,7 @@ void DtndClient::sendMessage(const Message& dtnMsg) {
 
     const auto MS_IN_SECOND = 1000;
 
-    auto typedEndpoint = dtnMsg.endpoint;
-    buildEndpointId(typedEndpoint, dtnMsg.msgType);
+    auto typedEndpoint = buildEndpointId(dtnMsg.endpoint, dtnMsg.msgType);
 
     auto lifetime = (dtnMsg.lifetime == 0) ? config.lifetime : dtnMsg.lifetime;
 
@@ -146,8 +193,8 @@ void DtndClient::sendRemoteConfig(std::vector<uint8_t> config) {
 
     // TODO: find appropriate lifetime
     if (!latestRemoteConfig.empty()) {
-        Message msg = {latestRemoteConfig, "remoteConfig", ros::DtnMsgType::INTERNAL,
-                       BundleFlags::BUNDLE_REMOVE_OLDER_BUNDLES, 99999};
+        Message msg = {latestRemoteConfig, common::REMOTE_CONFIG_ENDPOINT,
+                       ros::DtnMsgType::INTERNAL, BundleFlags::BUNDLE_REMOVE_OLDER_BUNDLES, 99999};
         sendMessage(msg);
     }
 }

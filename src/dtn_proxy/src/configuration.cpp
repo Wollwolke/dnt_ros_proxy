@@ -77,10 +77,6 @@ RosConfig ConfigurationReader::initRosConfig(const toml::value& config, Logger& 
                 rosConfig.subTopics = toml::find<std::vector<RosConfig::RosTopic>>(ros, "sub");
                 foundTopics = true;
             }
-            if (ros.contains("pub")) {
-                rosConfig.pubTopics = toml::find<std::vector<RosConfig::RosTopic>>(ros, "pub");
-                foundTopics = true;
-            }
             if (ros.contains("servers")) {
                 rosConfig.servers = toml::find<std::vector<RosConfig::RosService>>(ros, "servers");
                 foundTopics = true;
@@ -147,7 +143,6 @@ pipeline::Module ConfigurationReader::resolveStringModule(const std::string& mod
 std::vector<std::string> ConfigurationReader::collectRequiredProfiles(const RosConfig& rosConfig) {
     std::vector<std::string> profiles;
     std::vector<std::vector<RosConfig::RosTopic>> temp;
-    temp.emplace_back(rosConfig.pubTopics);
     temp.emplace_back(rosConfig.subTopics);
     temp.emplace_back(rosConfig.servers);
     temp.emplace_back(rosConfig.clients);

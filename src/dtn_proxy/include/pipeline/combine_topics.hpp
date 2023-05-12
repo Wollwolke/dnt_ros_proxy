@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -14,25 +15,31 @@ namespace dtnproxy::pipeline {
 class CombineTopicsAction : public IAction {
 private:
     using msgStorePtr_t = std::shared_ptr<std::map<std::string, PipelineMessage>>;
+    using injectMsgCb_t = std::function<void(const std::string& topic,
+                                             std::shared_ptr<rclcpp::SerializedMessage> msg)>;
 
     // TODO: figure out the correct sequence for all modules
-    const uint SEQUENCE_NR = 99;
-    const Direction dir = Direction::IN;
+    const uint SEQUENCE_NR_IN = 95;
+    const uint SEQUENCE_NR_OUT = 2;
+    const Direction dir = Direction::INOUT;
 
-    const std::vector<std::string> topicsToCombine;
+    const std::vector<std::string> topics;
     const std::string currentTopic;
     msgStorePtr_t msgStore;
+    injectMsgCb_t injectMsgCb;
 
     static void appendMessage(std::vector<uint8_t>& buffer,
                               std::shared_ptr<rclcpp::SerializedMessage> msg);
+    bool combine(PipelineMessage& pMsg);
+    bool split(PipelineMessage& pMsg);
 
 public:
     CombineTopicsAction(std::string currentTopic, std::vector<std::string> topics,
-                        msgStorePtr_t msgStore);
+                        msgStorePtr_t msgStore, injectMsgCb_t injectMsgCb);
 
     Direction direction() override;
-    uint order() override;
-    bool run(PipelineMessage& pMsg) override;
+    uint order(const Direction& pipelineDir) override;
+    bool run(PipelineMessage& pMsg, const Direction& pipelineDir) override;
 };
 
 }  // namespace dtnproxy::pipeline

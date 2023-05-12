@@ -119,7 +119,9 @@ void ServiceManager::initServers() {
     auto serviceOptions = rcl_service_get_default_options();
 
     for (const auto& [topic, type, profile] : config.servers) {
-        auto advTopic = prefixTopic(topic, true);
+        // TODO: fix this
+        // auto advTopic = prefixTopic(topic, true);
+        auto advTopic = topic;
 
         auto cb = std::bind(&ServiceManager::requestCallback, this, topic, type,
                             std::placeholders::_1, std::placeholders::_2);

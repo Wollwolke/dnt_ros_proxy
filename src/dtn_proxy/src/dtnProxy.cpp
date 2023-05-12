@@ -38,10 +38,6 @@ private:
         using ros::DtnMsgType;
         std::vector<DtnEndpoint> result;
 
-        std::transform(config.ros.pubTopics.begin(), config.ros.pubTopics.end(),
-                       std::back_inserter(result),
-                       [](auto const& topic) { return std::pair(topic.name, DtnMsgType::TOPIC); });
-
         std::transform(
             config.ros.servers.begin(), config.ros.servers.end(), std::back_inserter(result),
             [](auto const& topic) { return std::pair(topic.name, DtnMsgType::RESPONSE); });
@@ -55,7 +51,8 @@ private:
     }
 
     void loadConfig() {
-        auto packageShareDirectory = ament_index_cpp::get_package_share_directory(PACKAGE_NAME);
+        auto packageShareDirectory =
+            ament_index_cpp::get_package_share_directory(common::PACKAGE_NAME);
         auto parameterDesc = rcl_interfaces::msg::ParameterDescriptor{};
         parameterDesc.description = "Absolute path to the configuration file.";
 
@@ -72,7 +69,7 @@ private:
     }
 
 public:
-    DtnProxy() : Node(DEFAULT_NODE_NAME) {
+    DtnProxy() : Node(common::DEFAULT_NODE_NAME) {
         loadConfig();
         auto remoteConfig =
             nlohmann::json::to_cbor(conf::ConfigurationReader::getRemoteConfig(config.ros));

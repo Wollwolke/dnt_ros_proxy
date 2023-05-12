@@ -1,8 +1,17 @@
 #pragma once
 
-namespace dtnproxy {
+namespace dtnproxy::common {
 
 constexpr auto PACKAGE_NAME = "dtn_proxy";
 constexpr auto DEFAULT_NODE_NAME = "dtnproxy";
 
-}  // namespace dtnproxy
+constexpr auto REMOTE_CONFIG_ENDPOINT = "remoteConfig";
+
+namespace dtnPrefixes {
+constexpr auto TOPIC = "rt_";
+constexpr auto RESPONSE = "rr_";
+constexpr auto REQUEST = "rq_";
+constexpr auto INTERNAL = "dtnproxy_";
+}  // namespace dtnPrefixes
+
+}  // namespace dtnproxy::common

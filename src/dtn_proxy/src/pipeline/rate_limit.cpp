@@ -11,9 +11,9 @@ RateLimitAction::RateLimitAction(unsigned int secondsBetweenMsgs)
 
 Direction RateLimitAction::direction() { return dir; }
 
-uint RateLimitAction::order() { return SEQUENCE_NR; }
+uint RateLimitAction::order(const Direction& /*pipelineDir*/) { return SEQUENCE_NR_IN; }
 
-bool RateLimitAction::run(PipelineMessage& /*pMsg*/) {
+bool RateLimitAction::run(PipelineMessage& /*pMsg*/, const Direction& /*pipelineDir*/) {
     using namespace std::chrono;
 
     auto timeNow = steady_clock::now();
