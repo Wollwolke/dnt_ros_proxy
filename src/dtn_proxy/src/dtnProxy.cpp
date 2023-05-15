@@ -2,6 +2,7 @@
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <functional>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/node.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -37,24 +38,15 @@ private:
         using ros::DtnMsgType;
         std::vector<DtnEndpoint> result;
 
-        std::transform(config.ros.pubTopics.begin(), config.ros.pubTopics.end(),
-                       std::back_inserter(result),
-                       [](auto const& topic) { return std::pair(topic.name, DtnMsgType::TOPIC); });
-
         std::transform(
-            config.ros.servers.begin(), config.ros.servers.end(), std::back_inserter(result),
-            [](auto const& topic) { return std::pair(topic.name, DtnMsgType::RESPONSE); });
-
-        std::transform(config.ros.clients.begin(), config.ros.clients.end(),
-                       std::back_inserter(result), [&](auto const& topic) {
-                           return std::pair(config.ros.nodePrefix + topic.name,
-                                            DtnMsgType::REQUEST);
-                       });
+            config.ros.clients.begin(), config.ros.clients.end(), std::back_inserter(result),
+            [&](auto const& topic) { return std::pair(topic.name, DtnMsgType::REQUEST); });
         return result;
     }
 
     void loadConfig() {
-        auto packageShareDirectory = ament_index_cpp::get_package_share_directory(PACKAGE_NAME);
+        auto packageShareDirectory =
+            ament_index_cpp::get_package_share_directory(common::PACKAGE_NAME);
         auto parameterDesc = rcl_interfaces::msg::ParameterDescriptor{};
         parameterDesc.description = "Absolute path to the configuration file.";
 
@@ -71,7 +63,7 @@ private:
     }
 
 public:
-    DtnProxy() : Node(DEFAULT_NODE_NAME) {
+    DtnProxy() : Node(common::DEFAULT_NODE_NAME) {
         loadConfig();
 
         dtn = std::make_shared<DtndClient>(config.dtn);
@@ -85,6 +77,11 @@ public:
 
         auto dtnEndpoints = buildDtnEndpoints();
         dtn->registerEndpoints(dtnEndpoints);
+
+        auto remoteConfig = conf::ConfigurationReader::getRemoteConfig(config.ros);
+        if (!remoteConfig.interfaces.empty()) {
+            dtn->sendRemoteConfig(nlohmann::json::to_cbor(remoteConfig));
+        }
 
         ros->initClients();
 

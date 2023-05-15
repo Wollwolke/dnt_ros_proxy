@@ -56,7 +56,8 @@ protected:
 
     uint32_t buildDtnPayload(std::vector<uint8_t>& payload,
                              const std::shared_ptr<rclcpp::SerializedMessage>& msg, int reqId = -1);
-    std::string prefixTopic(const std::string& topicName, bool isService);
+    std::string prefixTopic(const std::string& topicName, const std::string& nodeName,
+                            bool isService);
 
 public:
     void setStatsRecorder(std::shared_ptr<StatsRecorder> statsRecorder);

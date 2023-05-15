@@ -4,21 +4,15 @@
 #include <memory>
 #include <utility>
 
-#include "pipeline/action_interface.hpp"
 #include "pipeline/combine_tf.hpp"
 #include "pipeline/combine_topics.hpp"
 #include "pipeline/expire_bundles.hpp"
-#include "pipeline/image_compression.hpp"
-#include "pipeline/image_decompression.hpp"
-#include "pipeline/logging.hpp"
-#include "pipeline/lzmh_decoding.hpp"
-#include "pipeline/lzmh_encoding.hpp"
+#include "pipeline/image_processing.hpp"
+#include "pipeline/lzmh.hpp"
 #include "pipeline/modules.hpp"
 #include "pipeline/on_change.hpp"
 #include "pipeline/pipeline_msg.hpp"
 #include "pipeline/rate_limit.hpp"
-#include "pipeline/split_tf.hpp"
-#include "pipeline/split_topics.hpp"
 
 namespace dtnproxy::pipeline {
 
@@ -27,58 +21,10 @@ Pipeline::Pipeline(Direction dir, std::string msgType, std::string topic)
 
 void Pipeline::initPipeline(const PipelineConfig& config, const std::string& profile,
                             rclcpp::Node& nodeHandle) {
-    if (profile.empty()) {
-        return;
+    if (!profile.empty()) {
+        auto modules = config.at(profile);
+        build(modules, nodeHandle);
     }
-    for (const auto& [module, params] : config.at(profile)) {
-        std::unique_ptr<IAction> mod;
-        switch (module) {
-            case Module::RATE_LIMIT:
-                // TODO: error handling for parameters
-                mod = std::make_unique<RateLimitAction>(stoi(params.at(0)));
-                break;
-            case Module::LOGGING:
-                mod = std::make_unique<LoggingAction>();
-                break;
-            case Module::COMPRESS:
-                mod = std::make_unique<LzmhEncodingAction>(msgType);
-                break;
-            case Module::DECOMPRESS:
-                mod = std::make_unique<LzmhDecodingAction>(msgType);
-                break;
-            case Module::IMG_COMPRESS:
-                mod = std::make_unique<ImageCompressionAction>(msgType);
-                break;
-            case Module::IMG_DECOMPRESS:
-                mod = std::make_unique<ImageDecompressionAction>(msgType);
-                break;
-            case Module::EXPIRE:
-                mod = std::make_unique<ExpireBundlesAction>();
-                break;
-            case Module::ON_CHANGE:
-                mod = std::make_unique<OnChangeAction>(msgType);
-                break;
-            case Module::COMBINE:
-                mod = std::make_unique<CombineTopicsAction>(topic, params, msgStore);
-                break;
-            case Module::SPLIT:
-                mod = std::make_unique<SplitTopicsAction>(topic, params, injectMsgCb);
-                break;
-            case Module::COMBINE_TF:
-                mod = std::make_unique<CombineTfAction>(params, nodeHandle);
-                break;
-            case Module::SPLIT_TF:
-                mod = std::make_unique<SplitTfAction>(nodeHandle);
-                break;
-        }
-        // Check if module should run when msg enters / leaves proxy
-        if ((mod->direction() & (this->direction | Direction::INOUT)) != 0) {
-            actions.push_back(std::move(mod));
-        }
-    }
-
-    std::sort(actions.begin(), actions.end(),
-              [](auto& first, auto& second) { return first->order() < second->order(); });
 }
 
 void Pipeline::initPipeline(const PipelineConfig& config, const std::string& profile,
@@ -93,13 +39,59 @@ void Pipeline::initPipeline(const PipelineConfig& config, const std::string& pro
     initPipeline(config, profile, nodeHandle);
 }
 
+void Pipeline::initPipeline(const std::vector<conf::Module>& modules, rclcpp::Node& nodeHandle,
+                            injectMsgCb_t injectMsgCb) {
+    if (!modules.empty()) {
+        this->injectMsgCb = std::move(injectMsgCb);
+        build(modules, nodeHandle);
+    }
+}
+
 bool Pipeline::run(PipelineMessage& pMsg) {
     for (auto& action : actions) {
-        if (!action->run(pMsg)) {
+        if (!action->run(pMsg, direction)) {
             return false;
         }
     }
     return true;
+}
+
+void Pipeline::build(const std::vector<conf::Module>& modules, rclcpp::Node& nodeHandle) {
+    for (const auto& [module, params] : modules) {
+        std::unique_ptr<IAction> mod;
+        switch (module) {
+            case Module::RATE_LIMIT:
+                // TODO: error handling for parameters
+                mod = std::make_unique<RateLimitAction>(stoi(params.at(0)));
+                break;
+            case Module::COMPRESS:
+                mod = std::make_unique<LzmhAction>(msgType);
+                break;
+            case Module::IMG_COMPRESS:
+                mod = std::make_unique<ImageProcessingAction>(msgType);
+                break;
+            case Module::EXPIRE:
+                mod = std::make_unique<ExpireBundlesAction>();
+                break;
+            case Module::ON_CHANGE:
+                mod = std::make_unique<OnChangeAction>(msgType);
+                break;
+            case Module::COMBINE:
+                mod = std::make_unique<CombineTopicsAction>(topic, params, msgStore, injectMsgCb);
+                break;
+            case Module::COMBINE_TF:
+                mod = std::make_unique<CombineTfAction>(params, nodeHandle);
+                break;
+        }
+        // Check if module should run when msg enters / leaves proxy
+        if ((mod->direction() & (this->direction | Direction::INOUT)) != 0) {
+            actions.push_back(std::move(mod));
+        }
+    }
+
+    std::sort(actions.begin(), actions.end(), [this](auto& first, auto& second) {
+        return first->order(direction) < second->order(direction);
+    });
 }
 
 }  // namespace dtnproxy::pipeline

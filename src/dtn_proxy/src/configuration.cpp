@@ -31,6 +31,19 @@ Config ConfigurationReader::readConfigFile(const std::string& filePath) {
     return cfg;
 }
 
+RemoteConfig ConfigurationReader::getRemoteConfig(const RosConfig& rosConfig) {
+    // TODO: manage services
+    RemoteConfig remoteConfig;
+    for (const auto& [topic, type, profile] : rosConfig.subTopics) {
+        std::vector<Module> modules;
+        if (!profile.empty()) {
+            modules = rosConfig.profiles.at(profile);
+        }
+        remoteConfig.interfaces.emplace_back(false, topic, type, modules);
+    }
+    return remoteConfig;
+}
+
 DtnConfig ConfigurationReader::initDtnConfig(const toml::value& config, Logger& log) {
     DtnConfig dtnConfig;
     if (config.contains("dtn")) {
@@ -62,10 +75,6 @@ RosConfig ConfigurationReader::initRosConfig(const toml::value& config, Logger& 
         try {
             if (ros.contains("sub")) {
                 rosConfig.subTopics = toml::find<std::vector<RosConfig::RosTopic>>(ros, "sub");
-                foundTopics = true;
-            }
-            if (ros.contains("pub")) {
-                rosConfig.pubTopics = toml::find<std::vector<RosConfig::RosTopic>>(ros, "pub");
                 foundTopics = true;
             }
             if (ros.contains("servers")) {
@@ -107,12 +116,12 @@ void ConfigurationReader::initProfilesConfig(const toml::value& config, RosConfi
     const auto profiles = toml::find<std::vector<toml::value>>(config, "profile");
     for (const auto& profile : profiles) {
         auto profileName = toml::find<std::string>(profile, "name");
-        std::vector<RosConfig::Module> modules;
+        std::vector<Module> modules;
         const auto tomlModules = toml::find<std::vector<toml::value>>(profile, "module");
         for (const auto& module : tomlModules) {
-            RosConfig::Module mod;
+            Module mod;
             auto moduleName = toml::find<std::string>(module, "name");
-            mod.name = resolveStringModule(moduleName);
+            mod.enumId = resolveStringModule(moduleName);
             mod.params = toml::find<std::vector<std::string>>(module, "params");
             modules.push_back(mod);
         }
@@ -134,7 +143,6 @@ pipeline::Module ConfigurationReader::resolveStringModule(const std::string& mod
 std::vector<std::string> ConfigurationReader::collectRequiredProfiles(const RosConfig& rosConfig) {
     std::vector<std::string> profiles;
     std::vector<std::vector<RosConfig::RosTopic>> temp;
-    temp.emplace_back(rosConfig.pubTopics);
     temp.emplace_back(rosConfig.subTopics);
     temp.emplace_back(rosConfig.servers);
     temp.emplace_back(rosConfig.clients);

@@ -1,6 +1,7 @@
-#include "pipeline/lzmh_encoding.hpp"
+#include "pipeline/lzmh.hpp"
 
 #include <iostream>
+#include <stdexcept>
 
 extern "C" {
 #include "bit_file_buffer.h"
@@ -10,23 +11,35 @@ extern "C" {
 
 namespace dtnproxy::pipeline {
 
-LzmhEncodingAction::LzmhEncodingAction(const std::string &msgType) {
+LzmhAction::LzmhAction(const std::string &msgType) {
     fbIn = AllocateFileBuffer();
     fbOut = AllocateFileBuffer();
     options.error_log_file = stderr;
     active = !(unSupportedMsgType == msgType);
 }
 
-LzmhEncodingAction::~LzmhEncodingAction() {
+LzmhAction::~LzmhAction() {
     FreeFileBuffer(fbIn);
     FreeFileBuffer(fbOut);
 }
 
-Direction LzmhEncodingAction::direction() { return dir; }
+Direction LzmhAction::direction() { return dir; }
 
-uint LzmhEncodingAction::order() { return SEQUENCE_NR; }
+uint LzmhAction::order(const Direction &pipelineDir) {
+    switch (pipelineDir) {
+        case Direction::IN:
+            return SEQUENCE_NR_IN;
+            break;
+        case Direction::OUT:
+            return SEQUENCE_NR_OUT;
+            break;
+        case Direction::INOUT:
+        default:
+            throw new std::runtime_error("Pipeline should not have Direction INOUT");
+    }
+}
 
-bool LzmhEncodingAction::run(PipelineMessage &pMsg) {
+bool LzmhAction::run(PipelineMessage &pMsg, const Direction &pipelineDir) {
     if (!active) {
         return true;
     }
@@ -45,9 +58,19 @@ bool LzmhEncodingAction::run(PipelineMessage &pMsg) {
     InitBitFileBuffer(bbIn, fbIn);
     InitBitFileBuffer(bbOut, fbOut);
 
-    EncodeLZMH(bbIn, bbOut, &options);
+    switch (pipelineDir) {
+        case Direction::IN:
+            EncodeLZMH(bbIn, bbOut, &options);
+            break;
+        case Direction::OUT:
+            DecodeLZMH(bbIn, bbOut, &options);
+            break;
+        case Direction::INOUT:
+        default:
+            throw new std::runtime_error("Pipeline should not have Direction INOUT");
+    }
 
-    // Read compressed data
+    // Read modified data
     SetBitFileBufferMode(bbOut, FBM_READING);
     io_int_t bytes;
     uint8_t bits;
@@ -63,7 +86,7 @@ bool LzmhEncodingAction::run(PipelineMessage &pMsg) {
     auto ret = ReadBitFileBuffer(bbOut, newCdrMsg->buffer, bitsToRead);
 
     if (ret != bitsToRead) {
-        std::cout << "LZMH Decompression: 💥 Error reading compressed data." << std::endl;
+        std::cout << "LZMH En-/Decoding: 💥 Error reading modified data." << std::endl;
         return false;
     }
 

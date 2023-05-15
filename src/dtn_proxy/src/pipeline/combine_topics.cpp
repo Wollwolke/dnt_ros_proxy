@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <stdexcept>
 #include <utility>
 
 namespace dtnproxy::pipeline {
@@ -23,20 +24,10 @@ void CombineTopicsAction::appendMessage(std::vector<uint8_t>& buffer,
     buffer.insert(buffer.end(), cdrMsg.buffer, cdrMsg.buffer + cdrMsg.buffer_length);
 }
 
-CombineTopicsAction::CombineTopicsAction(std::string currentTopic, std::vector<std::string> topics,
-                                         msgStorePtr_t msgStore)
-    : topicsToCombine(std::move(topics)),
-      currentTopic(std::move(currentTopic)),
-      msgStore(std::move(msgStore)) {}
-
-Direction CombineTopicsAction::direction() { return dir; }
-
-uint CombineTopicsAction::order() { return SEQUENCE_NR; }
-
-bool CombineTopicsAction::run(PipelineMessage& pMsg) {
+bool CombineTopicsAction::combine(PipelineMessage& pMsg) {
     // check if all msgs exist in store
     bool allInStore = true;
-    for (const auto& topic : topicsToCombine) {
+    for (const auto& topic : topics) {
         if (topic != currentTopic && msgStore->find(topic) == msgStore->end()) {
             allInStore = false;
         }
@@ -46,7 +37,7 @@ bool CombineTopicsAction::run(PipelineMessage& pMsg) {
         // all msgs in store -> ready to send
         std::vector<uint8_t> buffer;
         bool expireAllBundles = pMsg.markExpired;
-        for (const auto& topic : topicsToCombine) {
+        for (const auto& topic : topics) {
             if (topic == currentTopic) {
                 appendMessage(buffer, pMsg.serializedMessage);
             } else {
@@ -70,6 +61,76 @@ bool CombineTopicsAction::run(PipelineMessage& pMsg) {
     // not all msgs in store yet -> add current msg to store
     msgStore->insert_or_assign(currentTopic, std::move(pMsg));
     return false;
+}
+
+bool CombineTopicsAction::split(PipelineMessage& pMsg) {
+    auto cdrMsg = pMsg.serializedMessage->get_rcl_serialized_message();
+
+    uint32_t msgLength;
+    const auto SIZE_OF_LEN = sizeof(msgLength);
+    size_t offset = 0;
+    std::vector<uint8_t> buffer;
+
+    for (const auto& topic : topics) {
+        std::memcpy(&msgLength, cdrMsg.buffer + offset, SIZE_OF_LEN);
+        offset += SIZE_OF_LEN;
+        msgLength = ntohl(msgLength);
+
+        if (0 != msgLength) {
+            buffer.assign(cdrMsg.buffer + offset, cdrMsg.buffer + offset + msgLength);
+            offset += msgLength;
+
+            auto newSerializedMessage = std::make_shared<rclcpp::SerializedMessage>(buffer.size());
+            auto* newMsg = &newSerializedMessage->get_rcl_serialized_message();
+            std::memcpy(newMsg->buffer, &buffer.front(), buffer.size());
+            newMsg->buffer_length = buffer.size();
+
+            if (currentTopic != topic) {
+                injectMsgCb(topic, std::move(newSerializedMessage));
+            } else {
+                pMsg.serializedMessage.swap(newSerializedMessage);
+            }
+        }
+    }
+
+    return true;
+}
+
+CombineTopicsAction::CombineTopicsAction(std::string currentTopic, std::vector<std::string> topics,
+                                         msgStorePtr_t msgStore, injectMsgCb_t injectMsgCb)
+    : topics(std::move(topics)),
+      currentTopic(std::move(currentTopic)),
+      msgStore(std::move(msgStore)),
+      injectMsgCb(std::move(injectMsgCb)) {}
+
+Direction CombineTopicsAction::direction() { return dir; }
+
+uint CombineTopicsAction::order(const Direction& pipelineDir) {
+    switch (pipelineDir) {
+        case Direction::IN:
+            return SEQUENCE_NR_IN;
+            break;
+        case Direction::OUT:
+            return SEQUENCE_NR_OUT;
+            break;
+        case Direction::INOUT:
+        default:
+            throw new std::runtime_error("Pipeline should not have Direction INOUT");
+    }
+}
+
+bool CombineTopicsAction::run(PipelineMessage& pMsg, const Direction& pipelineDir) {
+    switch (pipelineDir) {
+        case Direction::IN:
+            return combine(pMsg);
+            break;
+        case Direction::OUT:
+            return split(pMsg);
+            break;
+        case Direction::INOUT:
+        default:
+            throw new std::runtime_error("Pipeline should not have Direction INOUT");
+    }
 }
 
 }  // namespace dtnproxy::pipeline
