@@ -79,16 +79,12 @@ RosConfig ConfigurationReader::initRosConfig(const toml::value& config, Logger& 
     if (config.contains("ros")) {
         const auto ros = toml::find(config, "ros");
         try {
-            if (ros.contains("sub")) {
-                rosConfig.subTopics = toml::find<std::vector<RosConfig::RosTopic>>(ros, "sub");
+            if (ros.contains("topics")) {
+                rosConfig.subTopics = toml::find<std::vector<RosConfig::RosTopic>>(ros, "topics");
                 foundTopics = true;
             }
-            if (ros.contains("servers")) {
-                rosConfig.servers = toml::find<std::vector<RosConfig::RosService>>(ros, "servers");
-                foundTopics = true;
-            }
-            if (ros.contains("clients")) {
-                rosConfig.clients = toml::find<std::vector<RosConfig::RosService>>(ros, "clients");
+            if (ros.contains("services")) {
+                rosConfig.clients = toml::find<std::vector<RosConfig::RosService>>(ros, "services");
                 foundTopics = true;
             }
         } catch (const toml::exception& err) {
@@ -150,7 +146,6 @@ std::vector<std::string> ConfigurationReader::collectRequiredProfiles(const RosC
     std::vector<std::string> profiles;
     std::vector<std::vector<RosConfig::RosTopic>> temp;
     temp.emplace_back(rosConfig.subTopics);
-    temp.emplace_back(rosConfig.servers);
     temp.emplace_back(rosConfig.clients);
 
     for (const auto& vec : temp) {

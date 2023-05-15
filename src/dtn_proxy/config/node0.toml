@@ -18,78 +18,97 @@ lifetime = 300
 # [topicName, msgType, [profile]]
 
 # Topics to subscribe to
-sub = [
-    ["/temperature", "sensor_msgs/msg/Temperature", "test"],
-    ["/humidity", "sensor_msgs/msg/RelativeHumidity"],
-    ["/detectedImages", "sensor_msgs/msg/Image", "img",],
-    ]
+topics = [
+    [
+        "/detectedImages",
+        "sensor_msgs/msg/Image",
+        "compress_tf",
+    ],
+    [
+        "/status/position",
+        "geometry_msgs/msg/PointStamped",
+        "rate_pos",
+    ],
+    [
+        "/status/battery",
+        "sensor_msgs/msg/BatteryState",
+        "rate_bat",
+    ],
+    [
+        "/status/tempSensor",
+        "diagnostic_msgs/msg/DiagnosticArray",
+        "on_change",
+    ],
+    [
+        "/temperature",
+        "sensor_msgs/msg/Temperature",
+        "sensor",
+    ],
+    [
+        "/humidity",
+        "sensor_msgs/msg/RelativeHumidity",
+        "sensor",
+    ],
+]
 
-# Topics to publish
-pub = [
-    ["/detectedImages", "sensor_msgs/msg/Image", "imde"],
-    ["/temperature", "sensor_msgs/msg/Temperature", "de"],
-    ]
-
-# Services to provide
-# servers = [
-#     ["/add_two_ints", "example_interfaces/srv/AddTwoInts"]
-#     ]
 
 # Services to listen to
-# clients = [
-#     ["/add_two_ints", "example_interfaces/srv/AddTwoInts"]
-#     ]
-
+services = [
+    ["/add_two_ints", "example_interfaces/srv/AddTwoInts"]
+    ]
 
 # optimization profiles
-[[profile]]
-name = "test"
-
-    # [[profile.module]]
-    # name = "RateLimit"
-    # params = ["10"]
-
-    # [[profile.module]]
-    # name = "Logging"
-    # params = []
-
-    [[profile.module]]
-    name = "Compress"
-    params = []
-
-    [[profile.module]]
-    name = "Expire"
-    params = []
-
-    [[profile.module]]
-    name = "OnChange"
-    params = []
 
 [[profile]]
-name = "de"
-
-    [[profile.module]]
-    name = "Decompress"
-    params = []
-
-    # [[profile.module]]
-    # name = "ImageDecompress"
-    # params = []
-
-[[profile]]
-name = "imde"
-
-    # [[profile.module]]
-    # name = "Decompress"
-    # params = []
-
-    [[profile.module]]
-    name = "ImageDecompress"
-    params = []
+name = "compress_tf"
+[[profile.module]]
+name = "CombineTF"
+params = ["map", "base_link"]
+[[profile.module]]
+name = "ImageCompress"
+params = []
+[[profile.module]]
+name = "Compress"
+params = []
 
 [[profile]]
-name = "img"
+name = "rate_pos"
+[[profile.module]]
+name = "RateLimit"
+params = ["10"]
+[[profile.module]]
+name = "Compress"
+params = []
 
-    [[profile.module]]
-    name = "ImageCompress"
-    params = []
+[[profile]]
+name = "rate_bat"
+[[profile.module]]
+name = "RateLimit"
+params = ["30"]
+[[profile.module]]
+name = "Expire"
+params = []
+[[profile.module]]
+name = "Compress"
+params = []
+
+[[profile]]
+name = "sensor"
+[[profile.module]]
+name = "Combine"
+params = ["/temperature", "/humidity"]
+[[profile.module]]
+name = "Compress"
+params = []
+# [[profile.module]]
+# name = "RateLimit"
+# params = ["10"]
+
+[[profile]]
+name = "on_change"
+[[profile.module]]
+name = "OnChange"
+params = []
+[[profile.module]]
+name = "Compress"
+params = []

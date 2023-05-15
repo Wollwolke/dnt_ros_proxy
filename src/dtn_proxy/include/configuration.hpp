@@ -30,7 +30,6 @@ using RosConfig = struct RosConfig {
 
     std::vector<RosTopic> subTopics;
     std::vector<RosService> clients;
-    std::vector<RosService> servers;
 
     std::map<std::string, std::vector<Module>> profiles;
 };
