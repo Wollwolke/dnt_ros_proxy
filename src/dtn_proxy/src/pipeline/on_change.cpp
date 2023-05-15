@@ -27,9 +27,9 @@ OnChangeAction::OnChangeAction(std::string msgType) {
 
 Direction OnChangeAction::direction() { return dir; }
 
-uint OnChangeAction::order(const Direction & /*pipelineDir*/) { return SEQUENCE_NR_IN; }
+uint OnChangeAction::order() { return SEQUENCE_NR; }
 
-bool OnChangeAction::run(PipelineMessage &pMsg, const Direction & /*pipelineDir*/) {
+bool OnChangeAction::run(PipelineMessage &pMsg) {
     if (oldMsg.empty()) {
         // first call, search for header
         auto rosMsg = ros::allocate_message(msgMembers);

@@ -26,7 +26,7 @@ private:
     TopicManager topics;
     ServiceManager services;
 
-    static DtnEndpoint splitEndpointAndType(const std::string& typedEndpoint);
+    DtnEndpoint splitEndpointAndType(const std::string& typedEndpoint);
 
 public:
     Transfer(rclcpp::Node& nodeHandle, conf::RosConfig config, std::shared_ptr<DtndClient> dtn);

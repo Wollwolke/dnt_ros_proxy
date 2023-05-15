@@ -4,9 +4,9 @@ namespace dtnproxy::pipeline {
 
 Direction ExpireBundlesAction::direction() { return dir; }
 
-uint ExpireBundlesAction::order(const Direction& /*pipelineDir*/) { return SEQUENCE_NR_IN; }
+uint ExpireBundlesAction::order() { return SEQUENCE_NR; }
 
-bool ExpireBundlesAction::run(PipelineMessage& pMsg, const Direction& /*pipelineDir*/) {
+bool ExpireBundlesAction::run(PipelineMessage& pMsg) {
     pMsg.markExpired = true;
     return true;
 }

@@ -4,7 +4,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <string>
 #include <utility>
 #include <vector>
@@ -34,11 +33,11 @@ void TopicManager::topicCallback(const std::string& topic, const std::string& ty
                                             : DtndClient::BundleFlags::NO_FLAGS;
 
         DtndClient::Message dtnMsg{
-            std::move(payload),  // std::vector<uint8_t> payload,
-            topic,               // std::string endpoint,
-            DtnMsgType::TOPIC,   // ros::DtnMsgType msgType,
-            bundleFlags,         // uint64_t bundleFlags = 0,
-            pMsg.lifetime,       // uint64_t lifetime = 0,
+            std::move(payload),       // std::vector<uint8_t> payload,
+            config.nodePrefix + topic,  // std::string endpoint,
+            DtnMsgType::TOPIC,          // ros::DtnMsgType msgType,
+            bundleFlags,                // uint64_t bundleFlags = 0,
+            pMsg.lifetime,              // uint64_t lifetime = 0,
         };
 
         dtn->sendMessage(dtnMsg);
@@ -48,17 +47,16 @@ void TopicManager::topicCallback(const std::string& topic, const std::string& ty
 
 void TopicManager::dtnMsgCallback(const std::string& topic,
                                   std::shared_ptr<rclcpp::SerializedMessage> msg,
-                                  const std::string& src, bool skipPipeline) {
-    auto prefixedTopic = prefixTopic(topic, src, false);
+                                  bool skipPipeline) {
     pipeline::PipelineMessage pMsg{std::move(msg)};
     // run optimization pipeline before sending ROS msgs
-    if (skipPipeline || publisher.at(prefixedTopic).second.run(pMsg)) {
-        publisher.at(prefixedTopic).first->publish(*pMsg.serializedMessage);
+    if (skipPipeline || publisher.at(topic).second.run(pMsg)) {
+        publisher.at(topic).first->publish(*pMsg.serializedMessage);
 
         // TODO: find msgType in rosConfig
         if (stats) {
             auto hash = CdrMsgHash{}(pMsg.serializedMessage->get_rcl_serialized_message());
-            stats->rosSent(prefixedTopic, "unknown", getRosMsgSize(pMsg.serializedMessage),
+            stats->rosSent(topic, "unknown", getRosMsgSize(pMsg.serializedMessage),
                            DtnMsgType::TOPIC, hash);
         }
     }
@@ -68,8 +66,7 @@ TopicManager::TopicManager(rclcpp::Node& nodeHandle, conf::RosConfig config,
                            std::shared_ptr<DtndClient> dtn, const std::unique_ptr<Logger>& log)
     : ManagerBase(nodeHandle, config, dtn, log) {}
 
-void TopicManager::onDtnMessage(const std::string& topic, std::vector<uint8_t>& data,
-                                const std::string& src) {
+void TopicManager::onDtnMessage(const std::string& topic, std::vector<uint8_t>& data) {
     rcl_serialized_message_t cdrMsg{
         &data.front(),               // buffer
         data.size(),                 // buffer_length
@@ -77,41 +74,27 @@ void TopicManager::onDtnMessage(const std::string& topic, std::vector<uint8_t>& 
         rcl_get_default_allocator()  // allocator
     };
     auto msg = std::make_shared<rclcpp::SerializedMessage>(cdrMsg);
-    dtnMsgCallback(topic, msg, src);
+    dtnMsgCallback(topic, msg);
 }
 
-void TopicManager::onInternalMsg(const std::string& endpoint, std::vector<uint8_t>& data,
-                                 const std::string& src) {
-    constexpr auto TOPIC_PREFIX = "/dtn_proxy";
+void TopicManager::initPublisher() {
+    auto qos = rclcpp::QoS(10);
 
-    if (common::REMOTE_CONFIG_ENDPOINT == endpoint) {
-        auto jConfig = nlohmann::json::from_cbor(data);
-        auto remoteConfig = jConfig.get<conf::RemoteConfig>();
+    // callback to inject msgs from other topics
+    auto injectMsgCb = std::bind(&TopicManager::dtnMsgCallback, this, std::placeholders::_1,
+                                 std::placeholders::_2, true);
 
-        auto qos = rclcpp::QoS(10);
+    for (const auto& [topic, type, profile] : config.pubTopics) {
+        pipeline::Pipeline pipeline(pipeline::Direction::OUT, type, topic);
+        pipeline.initPipeline(config.profiles, profile, nodeHandle, injectMsgCb);
 
-        // callback to inject msgs from other topics
-        auto injectMsgCb = std::bind(&TopicManager::dtnMsgCallback, this, std::placeholders::_1,
-                                     std::placeholders::_2, src, true);
-        for (auto const& interface : remoteConfig.interfaces) {
-            if (interface.isService) {
-                continue;
-            }
+        auto pubTopic = prefixTopic(topic, false);
+        publisher.insert_or_assign(
+            topic, std::make_pair(nodeHandle.create_generic_publisher(pubTopic, type, qos),
+                                  std::move(pipeline)));
 
-            pipeline::Pipeline pipeline(pipeline::Direction::OUT, interface.type, interface.topic);
-            pipeline.initPipeline(interface.modules, nodeHandle, injectMsgCb);
-
-            auto prefixedTopic = prefixTopic(interface.topic, src, false);
-            publisher.insert_or_assign(
-                prefixedTopic,
-                std::make_pair(nodeHandle.create_generic_publisher(TOPIC_PREFIX + prefixedTopic,
-                                                                   interface.type, qos),
-                               std::move(pipeline)));
-
-            log->INFO() << "Providing topic:\t/dtn_proxy" << prefixedTopic;
-        }
+        log->INFO() << "Providing topic:\t" << pubTopic;
     }
-    // No other internal msgs implemented
 }
 
 void TopicManager::initSubscriber() {

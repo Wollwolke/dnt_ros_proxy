@@ -11,13 +11,12 @@ extern "C" {
 
 namespace dtnproxy::pipeline {
 
-class LzmhAction : public IAction {
+class LzmhEncodingAction : public IAction {
 private:
     static constexpr auto unSupportedMsgType = "sensor_msgs/msg/Image";
     static constexpr auto BITS_IN_BYTE = 8;
-    const uint SEQUENCE_NR_IN = 100;
-    const uint SEQUENCE_NR_OUT = 1;
-    const Direction dir = Direction::INOUT;
+    const uint SEQUENCE_NR = 100;
+    const Direction dir = Direction::IN;
 
     bool active = true;
     file_buffer_t* fbIn;
@@ -25,14 +24,14 @@ private:
     options_t options;
 
 public:
-    LzmhAction(const std::string& msgType);
-    ~LzmhAction();
-    LzmhAction(const LzmhAction&) = delete;
-    LzmhAction& operator=(const LzmhAction&) = delete;
+    LzmhEncodingAction(const std::string& msgType);
+    ~LzmhEncodingAction();
+    LzmhEncodingAction(const LzmhEncodingAction&) = delete;
+    LzmhEncodingAction& operator=(const LzmhEncodingAction&) = delete;
 
     Direction direction() override;
-    uint order(const Direction& pipelineDir) override;
-    bool run(PipelineMessage& pMsg, const Direction& pipelineDir) override;
+    uint order() override;
+    bool run(PipelineMessage& pMsg) override;
 };
 
 }  // namespace dtnproxy::pipeline

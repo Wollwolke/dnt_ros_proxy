@@ -17,9 +17,9 @@ class IAction {
 private:
 public:
     virtual ~IAction() = default;
-    virtual bool run(PipelineMessage& pMsg, const Direction& pipelineDir) = 0;
+    virtual bool run(PipelineMessage& pMsg) = 0;
     virtual Direction direction() = 0;
-    virtual uint order(const Direction& pipelineDir) = 0;
+    virtual uint order() = 0;
 };
 
 }  // namespace dtnproxy::pipeline

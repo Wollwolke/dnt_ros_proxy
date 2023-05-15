@@ -13,7 +13,7 @@ namespace dtnproxy::pipeline {
 
 class Pipeline {
 private:
-    using PipelineConfig = std::map<std::string, std::vector<conf::Module>>;
+    using PipelineConfig = std::map<std::string, std::vector<conf::RosConfig::Module>>;
     using msgStorePtr_t = std::shared_ptr<std::map<std::string, PipelineMessage>>;
     using injectMsgCb_t = std::function<void(const std::string& topic,
                                              std::shared_ptr<rclcpp::SerializedMessage> msg)>;
@@ -25,8 +25,6 @@ private:
     injectMsgCb_t injectMsgCb;
     Direction direction;
 
-    void build(const std::vector<conf::Module>& modules, rclcpp::Node& nodeHandle);
-
 public:
     Pipeline(Direction dir, std::string msgType, std::string topic);
 
@@ -36,8 +34,6 @@ public:
                       rclcpp::Node& nodeHandle, msgStorePtr_t msgStore);
     void initPipeline(const PipelineConfig& config, const std::string& profile,
                       rclcpp::Node& nodeHandle, injectMsgCb_t injectMsgCb);
-    void initPipeline(const std::vector<conf::Module>& modules, rclcpp::Node& nodeHandle,
-                      injectMsgCb_t injectMsgCb);
     bool run(PipelineMessage& pMsg);
 };
 

@@ -36,14 +36,13 @@ uint32_t ManagerBase::buildDtnPayload(std::vector<uint8_t>& payload,
     return rosBufferSize + CDR_MSG_SIZE_OFFSET;
 }
 
-std::string ManagerBase::prefixTopic(const std::string& topicName, const std::string& nodeName,
-                                     bool isService) {
-    constexpr auto TOPIC_PREFIX = "/";
+std::string ManagerBase::prefixTopic(const std::string& topicName, bool isService) {
+    constexpr auto TOPIC_PREFIX = "/dtn_proxy";
 
     auto expandedTopic = topicName;
     if ('/' == expandedTopic[0]) expandedTopic.erase(expandedTopic.begin());
-    return rclcpp::expand_topic_or_service_name(expandedTopic, nodeHandle.get_name(),
-                                                TOPIC_PREFIX + nodeName, isService);
+    return rclcpp::expand_topic_or_service_name(expandedTopic, nodeHandle.get_name(), TOPIC_PREFIX,
+                                                isService);
 }
 
 }  // namespace dtnproxy::ros

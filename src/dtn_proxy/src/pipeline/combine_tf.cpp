@@ -30,7 +30,24 @@ void CombineTfAction::appendMessage(std::vector<uint8_t>& buffer, rclcpp::Serial
     }
 }
 
-void CombineTfAction::combine(PipelineMessage& pMsg) {
+CombineTfAction::CombineTfAction(std::vector<std::string> params, rclcpp::Node& nodeHandle) {
+    if (params.size() != 2) {
+        std::cout << "CombineTF: Exactly two parameters required - sourceFrameId, targetFrameId"
+                  << std::endl;
+    } else {
+        sourceFrame = params[0];
+        targetFrame = params[1];
+    }
+
+    tfBuffer = std::make_unique<tf2_ros::Buffer>(nodeHandle.get_clock());
+    tfListener = std::make_shared<tf2_ros::TransformListener>(*tfBuffer);
+}
+
+Direction CombineTfAction::direction() { return dir; }
+
+uint CombineTfAction::order() { return SEQUENCE_NR; }
+
+bool CombineTfAction::run(PipelineMessage& pMsg) {
     std::vector<uint8_t> buffer;
     rclcpp::SerializedMessage serializedTf;
 
@@ -61,88 +78,7 @@ void CombineTfAction::combine(PipelineMessage& pMsg) {
     auto* cdrMsg = &pMsg.serializedMessage->get_rcl_serialized_message();
     std::memcpy(cdrMsg->buffer, &buffer.front(), buffer.size());
     cdrMsg->buffer_length = buffer.size();
-}
 
-void CombineTfAction::split(PipelineMessage& pMsg) {
-    auto cdrMsg = pMsg.serializedMessage->get_rcl_serialized_message();
-
-    uint32_t msgLength;
-    const auto SIZE_OF_LEN = sizeof(msgLength);
-    size_t offset = 0;
-    std::vector<uint8_t> buffer;
-
-    for (size_t i = 0; i < 2; ++i) {
-        std::memcpy(&msgLength, cdrMsg.buffer + offset, SIZE_OF_LEN);
-        offset += SIZE_OF_LEN;
-        msgLength = ntohl(msgLength);
-
-        if (0 != msgLength) {
-            // send TF Message
-            buffer.assign(cdrMsg.buffer + offset, cdrMsg.buffer + offset + msgLength);
-            offset += msgLength;
-
-            if (i == 0) {
-                // send TF Message
-                rclcpp::SerializedMessage serializedTf(buffer.size());
-                auto* newMsg = &serializedTf.get_rcl_serialized_message();
-                std::memcpy(newMsg->buffer, &buffer.front(), buffer.size());
-                newMsg->buffer_length = buffer.size();
-                geometry_msgs::msg::TransformStamped transform;
-                tfSerialization.deserialize_message(&serializedTf, &transform);
-                tfBroadcaster->sendTransform(transform);
-            } else {
-                // forward Topic Message
-                pMsg.serializedMessage->reserve(buffer.size());
-                auto* newCdrMsg = &pMsg.serializedMessage->get_rcl_serialized_message();
-                newCdrMsg->buffer_length = buffer.size();
-                std::memcpy(newCdrMsg->buffer, &buffer.front(), buffer.size());
-            }
-        }
-    }
-}
-
-CombineTfAction::CombineTfAction(std::vector<std::string> params, rclcpp::Node& nodeHandle) {
-    if (params.size() != 2) {
-        std::cout << "CombineTF: Exactly two parameters required - sourceFrameId, targetFrameId"
-                  << std::endl;
-    } else {
-        sourceFrame = params[0];
-        targetFrame = params[1];
-    }
-
-    tfBuffer = std::make_unique<tf2_ros::Buffer>(nodeHandle.get_clock());
-    tfListener = std::make_unique<tf2_ros::TransformListener>(*tfBuffer);
-    tfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(nodeHandle);
-}
-
-Direction CombineTfAction::direction() { return dir; }
-
-uint CombineTfAction::order(const Direction& pipelineDir) {
-    switch (pipelineDir) {
-        case Direction::IN:
-            return SEQUENCE_NR_IN;
-            break;
-        case Direction::OUT:
-            return SEQUENCE_NR_OUT;
-            break;
-        case Direction::INOUT:
-        default:
-            throw new std::runtime_error("Pipeline should not have Direction INOUT");
-    }
-}
-
-bool CombineTfAction::run(PipelineMessage& pMsg, const Direction& pipelineDir) {
-    switch (pipelineDir) {
-        case Direction::IN:
-            combine(pMsg);
-            break;
-        case Direction::OUT:
-            split(pMsg);
-            break;
-        case Direction::INOUT:
-        default:
-            throw new std::runtime_error("Pipeline should not have Direction INOUT");
-    }
     return true;
 }
 

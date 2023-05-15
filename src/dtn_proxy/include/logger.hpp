@@ -59,7 +59,7 @@ private:
 
 public:
     explicit Logger(const std::string& moduleName,
-                    const std::string& loggerName = common::DEFAULT_NODE_NAME);
+                    const std::string& loggerName = DEFAULT_NODE_NAME);
     ~Logger() = default;
 
     Debug DBG() { return Debug(rosLogger, name); }
