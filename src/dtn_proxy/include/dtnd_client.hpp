@@ -6,6 +6,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "configuration.hpp"
@@ -39,14 +40,20 @@ private:
 
     messageHandler_t messageHandler;
     std::string localNodeId;
-    std::vector<DtnEndpoint> endpointsToRegister;
+    std::unordered_set<std::string> endpointsToRegister;
     std::mutex endpointsMutex;
 
+    std::vector<uint8_t> latestRemoteConfig;
+    std::mutex remoteConfigMutex;
+
     Result getRequest(std::string path);
-    static void buildEndpointId(std::string& endpoint, ros::DtnMsgType type);
+    static std::string buildEndpointId(const std::string& endpoint, ros::DtnMsgType type);
     bool getLocalNodeId();
     bool registerSubscribeEndpoints();
     void registerKnownEndpoints();
+    static void removeNodeIdFromEndpoint(std::string& endpoint);
+    static void removeProtocolFromNodeId(std::string& nodeId);
+    void onInternalMsg(data::WsReceive bundle);
 
 public:
     using Message = struct Message {
@@ -55,6 +62,7 @@ public:
         ros::DtnMsgType msgType;
         uint64_t bundleFlags = 0;
         uint64_t lifetime = 0;
+        std::string remoteNodeId = "";
     };
 
     enum BundleFlags : uint64_t {
@@ -71,6 +79,7 @@ public:
 
     void registerEndpoints(const std::vector<DtnEndpoint>& endpoints);
     void sendMessage(const Message& dtnMsg);
+    void sendRemoteConfig(std::vector<uint8_t> config = {});
 };
 
 }  // namespace dtnproxy

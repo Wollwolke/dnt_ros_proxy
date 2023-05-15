@@ -21,7 +21,8 @@ int ServiceManager::requestHeaderId(rmw_request_id_t requestHeader) {
     return storedRequestHeaders.size() - 1;
 }
 
-void ServiceManager::responseCallback(const std::string& topic, uint8_t requestId,
+void ServiceManager::responseCallback(const std::string& topic, const std::string& remoteNodeId,
+                                      uint8_t requestId,
                                       std::shared_ptr<rclcpp::SerializedMessage> response) {
     // TODO: check stats recording
 
@@ -29,12 +30,20 @@ void ServiceManager::responseCallback(const std::string& topic, uint8_t requestI
     auto rosMsgSize = buildDtnPayload(payload, response, requestId);
     if (stats) stats->rosReceived(topic, "unknown", rosMsgSize, DtnMsgType::RESPONSE);
 
-    DtndClient::Message dtnMsg{std::move(payload), config.nodePrefix + topic, DtnMsgType::RESPONSE};
+    DtndClient::Message dtnMsg{
+        std::move(payload),      // std::vector<uint8_t> payload
+        topic,                   // std::string endpoint
+        DtnMsgType::RESPONSE,    // ros::DtnMsgType msgType
+        0,                       // uint64_t bundleFlags = 0
+        0,                       // uint64_t lifetime = 0
+        "dtn://" + remoteNodeId  // std::string remoteNodeId = ""
+    };
     dtn->sendMessage(dtnMsg);
     if (stats) stats->dtnSent(topic, "unknown", dtnMsg.payload.size(), DtnMsgType::RESPONSE);
 }
 
 void ServiceManager::requestCallback(const std::string& topic, const std::string& type,
+                                     const std::string& remoteNodeId,
                                      std::shared_ptr<rmw_request_id_t> requestHeader,
                                      std::shared_ptr<rclcpp::SerializedMessage> request) {
     // TODO: think about using the smart pointer here
@@ -46,11 +55,20 @@ void ServiceManager::requestCallback(const std::string& topic, const std::string
 
     std::vector<uint8_t> payload;
     auto rosMsgSize = buildDtnPayload(payload, request, reqId);
-    if (stats) stats->rosReceived(topic, type, rosMsgSize, DtnMsgType::REQUEST);
 
-    DtndClient::Message dtnMsg{std::move(payload), topic, DtnMsgType::REQUEST};
+    auto prefixedTopic = prefixTopic(topic, remoteNodeId, true);
+    if (stats) stats->rosReceived(prefixedTopic, type, rosMsgSize, DtnMsgType::REQUEST);
+
+    DtndClient::Message dtnMsg{
+        std::move(payload),      // std::vector<uint8_t> payload
+        topic,                   // std::string endpoint
+        DtnMsgType::REQUEST,     // ros::DtnMsgType msgType
+        0,                       // uint64_t bundleFlags = 0
+        0,                       // uint64_t lifetime = 0
+        "dtn://" + remoteNodeId  // std::string remoteNodeId = ""
+    };
     dtn->sendMessage(dtnMsg);
-    if (stats) stats->dtnSent(topic, type, dtnMsg.payload.size(), DtnMsgType::REQUEST);
+    if (stats) stats->dtnSent(prefixedTopic, type, dtnMsg.payload.size(), DtnMsgType::REQUEST);
 }
 
 ServiceManager::ServiceManager(rclcpp::Node& nodeHandle, conf::RosConfig config,
@@ -58,7 +76,7 @@ ServiceManager::ServiceManager(rclcpp::Node& nodeHandle, conf::RosConfig config,
     : ManagerBase(nodeHandle, config, dtn, log) {}
 
 void ServiceManager::onDtnRequest(const std::string& topic, std::vector<uint8_t>& data,
-                                  uint8_t headerId) {
+                                  uint8_t headerId, const std::string& src) {
     rcl_serialized_message_t request{
         &data.front(),               // buffer
         data.size(),                 // buffer_length
@@ -67,34 +85,27 @@ void ServiceManager::onDtnRequest(const std::string& topic, std::vector<uint8_t>
     };
     auto sharedRequest = std::make_shared<rclcpp::SerializedMessage>(request);
 
-    auto localTopic = topic;
-    if (topic.rfind(config.nodePrefix, 0) == 0) {
-        // topic starts with prefix
-        localTopic.erase(0, config.nodePrefix.size());
-    }
-
-    auto responseReceivedCallback = [this, localTopic, headerId](SharedFuture future) {
+    auto responseReceivedCallback = [this, topic, headerId, src](SharedFuture future) {
         const auto responseMsg = future.get();
-        responseCallback(localTopic, headerId, responseMsg);
+        responseCallback(topic, src, headerId, responseMsg);
     };
 
     using namespace std::chrono_literals;
-    while (!clients.at(localTopic)->wait_for_service(5s)) {
-        log->INFO() << "Service " << localTopic << " not available, waiting...";
+    while (!clients.at(topic)->wait_for_service(5s)) {
+        log->INFO() << "Service " << topic << " not available, waiting...";
     }
 
-    clients.at(localTopic)->async_send_request(sharedRequest, responseReceivedCallback);
+    clients.at(topic)->async_send_request(sharedRequest, responseReceivedCallback);
 
     // TODO: find msgType in rosConfig
     if (stats) {
-        stats->rosSent(localTopic, "unknown",
-                       static_cast<uint32_t>(data.size()) + CDR_MSG_SIZE_OFFSET,
+        stats->rosSent(topic, "unknown", static_cast<uint32_t>(data.size()) + CDR_MSG_SIZE_OFFSET,
                        DtnMsgType::REQUEST);
     }
 }
 
 void ServiceManager::onDtnResponse(const std::string& topic, std::vector<uint8_t>& data,
-                                   uint8_t headerId) {
+                                   uint8_t headerId, const std::string& src) {
     rcl_serialized_message_t response{
         &data.front(),               // buffer
         data.size(),                 // buffer_length
@@ -106,32 +117,43 @@ void ServiceManager::onDtnResponse(const std::string& topic, std::vector<uint8_t
     auto requestHeader = storedRequestHeaders.at(headerId);
     storedRequestHeaders.erase(storedRequestHeaders.begin() + headerId);
 
-    servers.at(topic)->send_response(requestHeader, sharedResponse);
+    auto prefixedTopic = prefixTopic(topic, src, true);
+    servers.at(prefixedTopic)->send_response(requestHeader, sharedResponse);
 
     // TODO: find msgType in rosConfig
     if (stats) {
-        stats->rosSent(topic, "unknown", static_cast<uint32_t>(data.size()) + CDR_MSG_SIZE_OFFSET,
+        stats->rosSent(prefixedTopic, "unknown",
+                       static_cast<uint32_t>(data.size()) + CDR_MSG_SIZE_OFFSET,
                        DtnMsgType::RESPONSE);
     }
 }
 
-void ServiceManager::initServers() {
-    auto serviceOptions = rcl_service_get_default_options();
+void ServiceManager::onInternalMsg(const std::string& endpoint, std::vector<uint8_t>& data,
+                                   const std::string& src) {
+    constexpr auto TOPIC_PREFIX = "/dtn_proxy";
 
-    for (const auto& [topic, type, profile] : config.servers) {
-        auto advTopic = prefixTopic(topic, true);
+    if (common::REMOTE_CONFIG_ENDPOINT == endpoint) {
+        auto serviceOptions = rcl_service_get_default_options();
+        auto jConfig = nlohmann::json::from_cbor(data);
+        auto remoteConfig = jConfig.get<conf::RemoteConfig>();
+        for (auto const& interface : remoteConfig.interfaces) {
+            if (!interface.isService) {
+                continue;
+            }
 
-        auto cb = std::bind(&ServiceManager::requestCallback, this, topic, type,
-                            std::placeholders::_1, std::placeholders::_2);
-        auto server = GenericService::make_shared(
-            nodeHandle.get_node_base_interface()->get_shared_rcl_node_handle(), advTopic, type, cb,
-            serviceOptions);
+            auto prefixedTopic = prefixTopic(interface.topic, src, true);
+            auto cb = std::bind(&ServiceManager::requestCallback, this, interface.topic,
+                                interface.type, src, std::placeholders::_1, std::placeholders::_2);
+            auto server = GenericService::make_shared(
+                nodeHandle.get_node_base_interface()->get_shared_rcl_node_handle(),
+                TOPIC_PREFIX + prefixedTopic, interface.type, cb, serviceOptions);
 
-        // TODO: Check service group (nullptr)
-        nodeHandle.get_node_services_interface()->add_service(server, nullptr);
-        servers.insert_or_assign(topic, server);
+            // TODO: Check service group (nullptr)
+            nodeHandle.get_node_services_interface()->add_service(server, nullptr);
+            servers.insert_or_assign(prefixedTopic, server);
 
-        log->INFO() << "Providing service:\t" << advTopic;
+            log->INFO() << "Providing service:\t" << prefixedTopic;
+        }
     }
 }
 
