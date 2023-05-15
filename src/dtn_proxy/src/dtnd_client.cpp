@@ -128,6 +128,8 @@ void DtndClient::removeProtocolFromNodeId(std::string& nodeId) {
 
 void DtndClient::onInternalMsg(data::WsReceive bundle) {
     if (bundle.dst.find(common::REMOTE_CONFIG_ENDPOINT) != std::string::npos) {
+        log->INFO() << "Received Configuration message";
+
         auto jConfig = nlohmann::json::from_cbor(bundle.data);
         auto remoteConfig = jConfig.get<conf::RemoteConfig>();
         std::unique_lock<std::mutex> lock(endpointsMutex);
@@ -136,9 +138,8 @@ void DtndClient::onInternalMsg(data::WsReceive bundle) {
             if ('/' != endpoint[0]) {
                 endpoint.insert(0, "/");
             }
-            // endpoint.insert(0, "/" + bundle.src);
             if (interface.isService) {
-                endpointsToRegister.insert(buildEndpointId(endpoint, ros::DtnMsgType::REQUEST));
+                endpointsToRegister.insert(buildEndpointId(endpoint, ros::DtnMsgType::RESPONSE));
             } else {
                 endpointsToRegister.insert(buildEndpointId(endpoint, ros::DtnMsgType::TOPIC));
             }
@@ -173,13 +174,14 @@ void DtndClient::sendMessage(const Message& dtnMsg) {
     auto typedEndpoint = buildEndpointId(dtnMsg.endpoint, dtnMsg.msgType);
 
     auto lifetime = (dtnMsg.lifetime == 0) ? config.lifetime : dtnMsg.lifetime;
+    auto remoteNodeId = dtnMsg.remoteNodeId.empty() ? config.remoteNodeId : dtnMsg.remoteNodeId;
 
     data::WsSend msg{
-        localNodeId,                                // std::string src,
-        config.remoteNodeId + "/" + typedEndpoint,  // std::string dst,
-        lifetime * MS_IN_SECOND,                    // uint64_t lifetime,
-        dtnMsg.bundleFlags,                         // uint64_t bundle_flags,
-        dtnMsg.payload,                             // std::vector<uint8_t>& data,
+        localNodeId,                         // std::string src,
+        remoteNodeId + "/" + typedEndpoint,  // std::string dst,
+        lifetime * MS_IN_SECOND,             // uint64_t lifetime,
+        dtnMsg.bundleFlags,                  // uint64_t bundle_flags,
+        dtnMsg.payload,                      // std::vector<uint8_t>& data,
     };
     std::vector<uint8_t> cborMsg = nlohmann::json::to_cbor(msg);
     ws->send(std::move(cborMsg));

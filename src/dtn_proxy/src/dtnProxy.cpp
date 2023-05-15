@@ -39,14 +39,8 @@ private:
         std::vector<DtnEndpoint> result;
 
         std::transform(
-            config.ros.servers.begin(), config.ros.servers.end(), std::back_inserter(result),
-            [](auto const& topic) { return std::pair(topic.name, DtnMsgType::RESPONSE); });
-
-        std::transform(config.ros.clients.begin(), config.ros.clients.end(),
-                       std::back_inserter(result), [&](auto const& topic) {
-                           return std::pair(config.ros.nodePrefix + topic.name,
-                                            DtnMsgType::REQUEST);
-                       });
+            config.ros.clients.begin(), config.ros.clients.end(), std::back_inserter(result),
+            [&](auto const& topic) { return std::pair(topic.name, DtnMsgType::REQUEST); });
         return result;
     }
 
@@ -71,8 +65,6 @@ private:
 public:
     DtnProxy() : Node(common::DEFAULT_NODE_NAME) {
         loadConfig();
-        auto remoteConfig =
-            nlohmann::json::to_cbor(conf::ConfigurationReader::getRemoteConfig(config.ros));
 
         dtn = std::make_shared<DtndClient>(config.dtn);
         ros = std::make_unique<ros::Transfer>(*this, config.ros, dtn);
@@ -85,7 +77,11 @@ public:
 
         auto dtnEndpoints = buildDtnEndpoints();
         dtn->registerEndpoints(dtnEndpoints);
-        dtn->sendRemoteConfig(remoteConfig);
+
+        auto remoteConfig = conf::ConfigurationReader::getRemoteConfig(config.ros);
+        if (!remoteConfig.interfaces.empty()) {
+            dtn->sendRemoteConfig(nlohmann::json::to_cbor(remoteConfig));
+        }
 
         ros->initClients();
 

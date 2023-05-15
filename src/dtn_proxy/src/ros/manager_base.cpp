@@ -38,7 +38,6 @@ uint32_t ManagerBase::buildDtnPayload(std::vector<uint8_t>& payload,
 
 std::string ManagerBase::prefixTopic(const std::string& topicName, const std::string& nodeName,
                                      bool isService) {
-    // constexpr auto TOPIC_PREFIX = "/dtn_proxy/";
     constexpr auto TOPIC_PREFIX = "/";
 
     auto expandedTopic = topicName;

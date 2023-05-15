@@ -32,7 +32,6 @@ Config ConfigurationReader::readConfigFile(const std::string& filePath) {
 }
 
 RemoteConfig ConfigurationReader::getRemoteConfig(const RosConfig& rosConfig) {
-    // TODO: manage services
     RemoteConfig remoteConfig;
     for (const auto& [topic, type, profile] : rosConfig.subTopics) {
         std::vector<Module> modules;
@@ -40,6 +39,14 @@ RemoteConfig ConfigurationReader::getRemoteConfig(const RosConfig& rosConfig) {
             modules = rosConfig.profiles.at(profile);
         }
         remoteConfig.interfaces.emplace_back(false, topic, type, modules);
+    }
+
+    for (const auto& [topic, type, profile] : rosConfig.clients) {
+        std::vector<Module> modules;
+        if (!profile.empty()) {
+            modules = rosConfig.profiles.at(profile);
+        }
+        remoteConfig.interfaces.emplace_back(true, topic, type, modules);
     }
     return remoteConfig;
 }
@@ -71,7 +78,6 @@ RosConfig ConfigurationReader::initRosConfig(const toml::value& config, Logger& 
     bool foundTopics = false;
     if (config.contains("ros")) {
         const auto ros = toml::find(config, "ros");
-        rosConfig.nodePrefix = toml::find_or<std::string>(ros, "nodePrefix", "");
         try {
             if (ros.contains("sub")) {
                 rosConfig.subTopics = toml::find<std::vector<RosConfig::RosTopic>>(ros, "sub");

@@ -33,7 +33,6 @@ using RosConfig = struct RosConfig {
     std::vector<RosService> servers;
 
     std::map<std::string, std::vector<Module>> profiles;
-    std::string nodePrefix;
 };
 
 using DtnConfig = struct DtnConfig {

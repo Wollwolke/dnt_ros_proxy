@@ -62,6 +62,7 @@ public:
         ros::DtnMsgType msgType;
         uint64_t bundleFlags = 0;
         uint64_t lifetime = 0;
+        std::string remoteNodeId = "";
     };
 
     enum BundleFlags : uint64_t {
