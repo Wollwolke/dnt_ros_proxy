@@ -1,13 +1,25 @@
 #include "pipeline/rate_limit.hpp"
 
 #include <chrono>
+#include <iostream>
+#include <stdexcept>
+#include <string>
 
 #include "pipeline/action_interface.hpp"
 
 namespace dtnproxy::pipeline {
 
-RateLimitAction::RateLimitAction(unsigned int secondsBetweenMsgs)
-    : deltaT(secondsBetweenMsgs * MS_IN_SECOND) {}
+RateLimitAction::RateLimitAction(std::vector<std::string> params) {
+    if (1 != params.size()) {
+        std::cout << "RateLimit: 💥 Exactly one argument required." << std::endl;
+    } else {
+        try {
+            deltaT = std::stoi(params[0]) * MS_IN_SECOND;
+        } catch (const std::logic_error& e) {
+            std::cout << "RateLimit: 💥 Argument is not a number: " << e.what() << std::endl;
+        }
+    }
+}
 
 Direction RateLimitAction::direction() { return dir; }
 

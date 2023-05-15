@@ -61,8 +61,7 @@ void Pipeline::build(const std::vector<conf::Module>& modules, rclcpp::Node& nod
         std::unique_ptr<IAction> mod;
         switch (module) {
             case Module::RATE_LIMIT:
-                // TODO: error handling for parameters
-                mod = std::make_unique<RateLimitAction>(stoi(params.at(0)));
+                mod = std::make_unique<RateLimitAction>(params);
                 break;
             case Module::COMPRESS:
                 mod = std::make_unique<LzmhAction>(msgType);
