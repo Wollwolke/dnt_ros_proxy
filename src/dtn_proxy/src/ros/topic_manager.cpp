@@ -34,11 +34,11 @@ void TopicManager::topicCallback(const std::string& topic, const std::string& ty
                                             : DtndClient::BundleFlags::NO_FLAGS;
 
         DtndClient::Message dtnMsg{
-            std::move(payload),       // std::vector<uint8_t> payload,
-            config.nodePrefix + topic,  // std::string endpoint,
-            DtnMsgType::TOPIC,          // ros::DtnMsgType msgType,
-            bundleFlags,                // uint64_t bundleFlags = 0,
-            pMsg.lifetime,              // uint64_t lifetime = 0,
+            std::move(payload),  // std::vector<uint8_t> payload,
+            topic,               // std::string endpoint,
+            DtnMsgType::TOPIC,   // ros::DtnMsgType msgType,
+            bundleFlags,         // uint64_t bundleFlags = 0,
+            pMsg.lifetime,       // uint64_t lifetime = 0,
         };
 
         dtn->sendMessage(dtnMsg);
@@ -56,7 +56,6 @@ void TopicManager::dtnMsgCallback(const std::string& topic,
         publisher.at(prefixedTopic).first->publish(*pMsg.serializedMessage);
 
         // TODO: find msgType in rosConfig
-        // TODO: check prefix in stats
         if (stats) {
             auto hash = CdrMsgHash{}(pMsg.serializedMessage->get_rcl_serialized_message());
             stats->rosSent(prefixedTopic, "unknown", getRosMsgSize(pMsg.serializedMessage),
@@ -86,9 +85,6 @@ void TopicManager::onInternalMsg(const std::string& endpoint, std::vector<uint8_
     constexpr auto TOPIC_PREFIX = "/dtn_proxy";
 
     if (common::REMOTE_CONFIG_ENDPOINT == endpoint) {
-        log->INFO() << "Received Configuration message";
-        publisher.clear();
-
         auto jConfig = nlohmann::json::from_cbor(data);
         auto remoteConfig = jConfig.get<conf::RemoteConfig>();
 

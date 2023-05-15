@@ -60,7 +60,6 @@ void Transfer::initClients() {
     static bool done = false;
     if (!done) {
         topics.initSubscriber();
-        services.initServers();
         done = true;
     }
 }
@@ -89,17 +88,17 @@ void Transfer::onDtnMessage(const data::WsReceive& bundle) {
             std::vector<uint8_t> buffer(data.begin() + SIZE_OF_HEADER_ID, data.end());
             uint8_t headerId;
             memcpy(&headerId, &data.front(), SIZE_OF_HEADER_ID);
-            services.onDtnRequest(topic, buffer, headerId);
+            services.onDtnRequest(topic, buffer, headerId, bundle.src);
         } break;
         case DtnMsgType::RESPONSE: {
             std::vector<uint8_t> buffer(data.begin() + SIZE_OF_HEADER_ID, data.end());
             uint8_t headerId;
             memcpy(&headerId, &data.front(), SIZE_OF_HEADER_ID);
-            services.onDtnResponse(topic, buffer, headerId);
+            services.onDtnResponse(topic, buffer, headerId, bundle.src);
         } break;
         case DtnMsgType::INTERNAL: {
-            // TODO: add services
             topics.onInternalMsg(topic, data, bundle.src);
+            services.onInternalMsg(topic, data, bundle.src);
         } break;
         case DtnMsgType::INVALID:
         default:
