@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <ament_index_cpp/get_package_share_directory.hpp>
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -30,8 +31,7 @@ private:
     void fatalShutdown(const std::string& reason) {
         RCLCPP_FATAL_STREAM(this->get_logger(), reason);
         dtn.reset();
-        // TODO: how to properly shut down?!?
-        rclcpp::shutdown();
+        exit(EXIT_FAILURE);
     }
 
     std::vector<DtnEndpoint> buildDtnEndpoints() {
