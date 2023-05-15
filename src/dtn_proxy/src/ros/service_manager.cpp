@@ -24,8 +24,6 @@ int ServiceManager::requestHeaderId(rmw_request_id_t requestHeader) {
 void ServiceManager::responseCallback(const std::string& topic, const std::string& remoteNodeId,
                                       uint8_t requestId,
                                       std::shared_ptr<rclcpp::SerializedMessage> response) {
-    // TODO: check stats recording
-
     std::vector<uint8_t> payload;
     auto rosMsgSize = buildDtnPayload(payload, response, requestId);
     if (stats) stats->rosReceived(topic, "unknown", rosMsgSize, DtnMsgType::RESPONSE);
@@ -148,7 +146,7 @@ void ServiceManager::onInternalMsg(const std::string& endpoint, std::vector<uint
                 nodeHandle.get_node_base_interface()->get_shared_rcl_node_handle(),
                 TOPIC_PREFIX + prefixedTopic, interface.type, cb, serviceOptions);
 
-            // TODO: Check service group (nullptr)
+            // [nullptr] uses default mutually exclusive callback group
             nodeHandle.get_node_services_interface()->add_service(server, nullptr);
             servers.insert_or_assign(prefixedTopic, server);
 
@@ -159,13 +157,14 @@ void ServiceManager::onInternalMsg(const std::string& endpoint, std::vector<uint
 
 void ServiceManager::initClients() {
     auto clientOptions = rcl_client_get_default_options();
+    clients.clear();
 
     for (const auto& [topic, type, profile] : config.clients) {
         auto client = GenericClient::make_shared(nodeHandle.get_node_base_interface().get(),
                                                  nodeHandle.get_node_graph_interface(), topic, type,
                                                  clientOptions);
 
-        // TODO: Check service group (nullptr)
+        // [nullptr] uses default mutually exclusive callback group
         nodeHandle.get_node_services_interface()->add_client(client, nullptr);
         clients.insert_or_assign(topic, client);
 

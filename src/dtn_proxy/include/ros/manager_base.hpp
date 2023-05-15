@@ -38,7 +38,6 @@ protected:
         }
     };
 
-    // TODO: validate this offset!!
     // Stats is using no overhead for DTN msgs, so ROS Overhead is also set to zero
     // const uint32_t CDR_MSG_SIZE_OFFSET = sizeof(size_t) + sizeof(size_t);
     const uint32_t CDR_MSG_SIZE_OFFSET = 0;

@@ -204,14 +204,17 @@ void WsClient::onClose(client* c, websocketpp::connection_hdl hdl) {
 void WsClient::onMessage(websocketpp::connection_hdl /*hdl*/, client::message_ptr msg) {
     std::string payload = msg->get_payload();
 
-    // TODO: don't rely on msg type to check for data
-    if (msg->get_opcode() == websocketpp::frame::opcode::BINARY) {
-        bundleHandler(payload);
-        log->DBG() << ">> " << websocketpp::utility::to_hex(payload);
-    } else {
-        // Response to command
-        // TODO: Error handling
-        log->DBG() << ">> " << payload;
+    switch (msg->get_opcode()) {
+        case websocketpp::frame::opcode::BINARY:
+            bundleHandler(payload);
+            log->DBG() << ">> " << websocketpp::utility::to_hex(payload);
+            break;
+        case websocketpp::frame::opcode::TEXT:
+            // Response to command
+            log->DBG() << ">> " << payload;
+            break;
+        default:
+            log->WARN() << "Unexpected Opcode received: " << msg->get_opcode();
     }
 }
 

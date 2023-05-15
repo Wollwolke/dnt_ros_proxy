@@ -31,8 +31,7 @@ private:
 public:
     Transfer(rclcpp::Node& nodeHandle, conf::RosConfig config, std::shared_ptr<DtndClient> dtn);
 
-    void initServers();
-    void initClients();
+    void initSubscribersAndClients();
     void enableStatsRecorder(std::shared_ptr<StatsRecorder> statsRecorder);
     void onDtnMessage(const data::WsReceive& bundle);
 };

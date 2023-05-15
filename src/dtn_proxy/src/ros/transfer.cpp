@@ -47,21 +47,9 @@ std::pair<std::string, ros::DtnMsgType> Transfer::splitEndpointAndType(
     return std::make_pair("", DtnMsgType::INVALID);
 }
 
-// TODO: naming
-void Transfer::initServers() {
-    static bool done = false;
-    if (!done) {
-        services.initClients();
-        done = true;
-    }
-}
-// TODO: naming
-void Transfer::initClients() {
-    static bool done = false;
-    if (!done) {
-        topics.initSubscriber();
-        done = true;
-    }
+void Transfer::initSubscribersAndClients() {
+    topics.initSubscriber();
+    services.initClients();
 }
 
 void Transfer::enableStatsRecorder(std::shared_ptr<StatsRecorder> statsRecorder) {

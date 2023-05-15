@@ -116,6 +116,7 @@ void TopicManager::onInternalMsg(const std::string& endpoint, std::vector<uint8_
 
 void TopicManager::initSubscriber() {
     auto qos = rclcpp::QoS(10);
+    subscriber.clear();
 
     // msg store for combining msgs over multiple subscribers
     auto msgStore = std::make_shared<std::map<std::string, pipeline::PipelineMessage>>();

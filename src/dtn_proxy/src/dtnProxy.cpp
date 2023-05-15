@@ -73,8 +73,6 @@ public:
             std::bind(&ros::Transfer::onDtnMessage, ros.get(), std::placeholders::_1));
         ros->enableStatsRecorder(std::make_shared<StatsRecorder>(config.statsDir));
 
-        ros->initServers();
-
         auto dtnEndpoints = buildDtnEndpoints();
         dtn->registerEndpoints(dtnEndpoints);
 
@@ -83,7 +81,7 @@ public:
             dtn->sendRemoteConfig(nlohmann::json::to_cbor(remoteConfig));
         }
 
-        ros->initClients();
+        ros->initSubscribersAndClients();
 
         RCLCPP_INFO_STREAM(this->get_logger(), "DtnProxy up.");
     }

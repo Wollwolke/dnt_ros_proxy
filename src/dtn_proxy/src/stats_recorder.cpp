@@ -1,5 +1,6 @@
 #include "stats_recorder.hpp"
 
+#include <array>
 #include <cstddef>
 #include <ctime>
 #include <filesystem>
@@ -30,18 +31,17 @@ std::string StatsRecorder::timestamp() {
 
 StatsRecorder::StatsRecorder(const std::string& statsDir) {
     std::filesystem::path statsPath(statsDir);
+    file.exceptions(std::ios::failbit);
 
     auto time = std::time(nullptr);
 
     const auto lenOfDateString = (4 + 1 + 2 + 1 + 2) + 1 + (2 + 1 + 2 + 1 + 2) + 1;
-    char fileName[lenOfDateString];
-    std::strftime(fileName, lenOfDateString, "%Y-%m-%d_%H-%M-%S", std::localtime(&time));
+    std::array<char, lenOfDateString> fileName;
+    std::strftime(fileName.data(), lenOfDateString, "%Y-%m-%d_%H-%M-%S", std::localtime(&time));
 
     auto filePath = statsPath;
-    filePath.append(fileName).replace_extension(".log");
 
-    // TODO: handle file errors
-    std::filesystem::create_directories(statsPath);
+    filePath.append(fileName.data()).replace_extension(".log");
     file.open(filePath);
 }
 
