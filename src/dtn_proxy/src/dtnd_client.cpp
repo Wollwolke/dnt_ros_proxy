@@ -98,7 +98,7 @@ void DtndClient::registerKnownEndpoints() {
     {
         std::lock_guard<std::mutex> lock(stateMutex);
         if (WsState::CONNECTED != wsStatus) {
-            log->FATAL() << "Can't register endpionts, not connection to dtnd!";
+            log->ERR() << "Can't register endpionts, not connection to dtnd!";
             return;
         }
     }
@@ -166,7 +166,7 @@ void DtndClient::sendMessage(const Message& dtnMsg) {
     {
         std::lock_guard<std::mutex> lock(stateMutex);
         if (WsState::CONNECTED != wsStatus) {
-            log->FATAL() << "Can't send message, not connection to dtnd!";
+            log->ERR() << "Can't send message, not connection to dtnd!";
             return;
         }
     }
