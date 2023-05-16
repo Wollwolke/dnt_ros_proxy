@@ -6,6 +6,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <ios>
+#include <iostream>
 #include <sstream>
 
 #include "ros/dtn_msg_type.hpp"
@@ -31,6 +33,7 @@ std::string StatsRecorder::timestamp() {
 
 StatsRecorder::StatsRecorder(const std::string& statsDir) {
     std::filesystem::path statsPath(statsDir);
+    std::filesystem::create_directories(statsPath);
     file.exceptions(std::ios::failbit);
 
     auto time = std::time(nullptr);
@@ -42,7 +45,13 @@ StatsRecorder::StatsRecorder(const std::string& statsDir) {
     auto filePath = statsPath;
 
     filePath.append(fileName.data()).replace_extension(".log");
-    file.open(filePath);
+    try {
+        file.open(filePath);
+    } catch (const std::ios_base::failure& e) {
+        std::cerr << "StatsRecorder: 💥 Error opening logfile " << filePath << ": " << e.what()
+                  << std::endl;
+        throw;
+    }
 }
 
 StatsRecorder::~StatsRecorder() { file.close(); }
