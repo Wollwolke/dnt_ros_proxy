@@ -66,7 +66,7 @@ void Transfer::onDtnMessage(const data::WsReceive& bundle) {
 
     auto [topic, type] = splitEndpointAndType(typedEndpoint);
     // TODO: get msg type for stats
-    if (stats) stats->dtnReceived(topic, "unknown", data.size(), type);
+    if (stats) stats->dtnReceived("/" + bundle.src + topic, "unknown", data.size(), type);
 
     switch (type) {
         case DtnMsgType::TOPIC: {
