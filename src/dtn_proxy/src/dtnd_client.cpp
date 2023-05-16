@@ -45,10 +45,12 @@ void DtndClient::onBundle(const std::string& bundle) {
     removeNodeIdFromEndpoint(wsBundle.dst);
     removeProtocolFromNodeId(wsBundle.src);
 
+    messageHandler(wsBundle);
+
+    // register dnt endpoints after ros is initialized through messageHandler
     if (wsBundle.dst.rfind(common::dtnPrefixes::INTERNAL, 0) == 0) {
         onInternalMsg(wsBundle);
     }
-    messageHandler(wsBundle);
 }
 
 DtndClient::Result::Result(bool success, std::string content)
