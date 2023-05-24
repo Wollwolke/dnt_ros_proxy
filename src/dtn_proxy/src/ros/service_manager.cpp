@@ -150,7 +150,7 @@ void ServiceManager::onInternalMsg(const std::string& endpoint, std::vector<uint
             nodeHandle.get_node_services_interface()->add_service(server, nullptr);
             servers.insert_or_assign(prefixedTopic, server);
 
-            log->INFO() << "Providing service:\t" << prefixedTopic;
+            log->INFO() << "Providing service:\t/dtn_proxy" << prefixedTopic;
         }
     }
 }
