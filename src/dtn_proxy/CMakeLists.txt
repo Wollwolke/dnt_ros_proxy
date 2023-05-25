@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project(dtn_proxy)
@@ -48,14 +48,13 @@ target_compile_definitions(dtnproxy PRIVATE ASIO_STANDALONE)
 target_include_directories(dtnproxy PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/external/cpp-httplib
-  ${CMAKE_CURRENT_SOURCE_DIR}/external/lodepng
   ${CMAKE_CURRENT_SOURCE_DIR}/external/toml11
   ${CMAKE_CURRENT_SOURCE_DIR}/external/websocketpp)
 
-# lodepng
-add_library(lodepng STATIC ${CMAKE_CURRENT_SOURCE_DIR}/external/lodepng/lodepng.cpp)
-target_link_libraries(dtnproxy lodepng)
-target_compile_options(lodepng PRIVATE -O3)
+# qoixx
+add_library(qoixx INTERFACE)
+target_include_directories(qoixx INTERFACE external/qoixx/include)
+target_link_libraries(dtnproxy qoixx)
 
 # data-compressor
 add_custom_target(dataCompressor

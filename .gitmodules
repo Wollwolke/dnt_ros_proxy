@@ -16,9 +16,9 @@
 [submodule "src/dtn_proxy/external/data-compressor"]
 	path = src/dtn_proxy/external/data-compressor
 	url = https://github.com/CenterForSecureEnergyInformatics/data-compressor.git
-[submodule "src/dtn_proxy/external/lodepng"]
-	path = src/dtn_proxy/external/lodepng
-	url = https://github.com/lvandeve/lodepng.git
 [submodule "src/radiation_msgs"]
 	path = src/radiation_msgs
 	url = https://github.com/EEEManchester/radiation_msgs.git
+[submodule "src/dtn_proxy/external/qoixx"]
+	path = src/dtn_proxy/external/qoixx
+	url = https://github.com/wx257osn2/qoixx.git

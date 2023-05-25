@@ -1,12 +1,14 @@
 #include "pipeline/image_processing.hpp"
 
-#include <lodepng.h>
-
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <qoixx.hpp>
 #include <rclcpp/serialization.hpp>
+#include <rclcpp/serialized_message.hpp>
+#include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <vector>
 
@@ -50,98 +52,99 @@ bool ImageProcessingAction::run(PipelineMessage& pMsg, const Direction& pipeline
     }
 }
 
+std::tuple<bool, uint8_t> ImageProcessingAction::isEncodingSupported(const std::string& encoding) {
+    using namespace sensor_msgs::image_encodings;
+    if (isColor(encoding) && bitDepth(encoding) == BIT_DEPTH) {
+        if (hasAlpha(encoding)) {
+            return {true, QOI_ENCODING_ALPHA};
+        }
+        return {true, QOI_ENCODING_NO_ALPHA};
+    }
+    return {false, 0};
+}
+
+std::string ImageProcessingAction::getEncodingFromId(uint8_t encodingId) {
+    auto iterator = std::find_if(encodingMap.begin(), encodingMap.end(),
+                                 [&encodingId](const std::pair<std::string, uint8_t>& entry) {
+                                     return entry.second == encodingId;
+                                 });
+    if (iterator != encodingMap.end()) {
+        return iterator->first;
+    }
+    return {};
+}
+
 bool ImageProcessingAction::compress(PipelineMessage& pMsg) {
     using MessageT = sensor_msgs::msg::Image;
-    MessageT imageMsg;
-    auto serializer = rclcpp::Serialization<MessageT>();
-    serializer.deserialize_message(pMsg.serializedMessage.get(), &imageMsg);
+    static rclcpp::Serialization<MessageT> imageSerializer;
+    static rclcpp::Serialization<std_msgs::msg::Header> headerSerializer;
 
-    if ("rgb8" != imageMsg.encoding) {
-        std::cout << "ImageCompression: Image not compressed, unsuported encoding "
+    MessageT imageMsg;
+    imageSerializer.deserialize_message(pMsg.serializedMessage.get(), &imageMsg);
+
+    auto [supported, qoiEncoding] = isEncodingSupported(imageMsg.encoding);
+    if (!supported) {
+        std::cout << "ImageCompression: Image cannot be compressed, unsuported encoding "
                   << imageMsg.encoding << std::endl;
         return false;
     }
 
-    std::vector<uint8_t> png;
-    lodepng::State state;
-    state.info_raw.colortype = LCT_RGB;
-    state.info_raw.bitdepth = BIT_DEPTH;
+    auto desc = qoixx::qoi::desc{.width = static_cast<std::uint32_t>(imageMsg.width),
+                                 .height = static_cast<std::uint32_t>(imageMsg.height),
+                                 .channels = qoiEncoding,
+                                 .colorspace = qoixx::qoi::colorspace::srgb};
+    auto encoded =
+        qoixx::qoi::encode<std::vector<uint8_t>>(imageMsg.data.data(), imageMsg.data.size(), desc);
 
-    // add ros header as png text chunks
-    lodepng_add_text(&state.info_png, "f", imageMsg.header.frame_id.c_str());
-    lodepng_add_text(&state.info_png, "s", std::to_string(imageMsg.header.stamp.sec).c_str());
-    lodepng_add_text(&state.info_png, "n", std::to_string(imageMsg.header.stamp.nanosec).c_str());
+    // add encoding to compressed image
+    encoded.insert(encoded.end(), encodingMap.at(imageMsg.encoding));
 
-    // optimize for a tradeoff of compression & speed
-    state.encoder.filter_palette_zero = 0;
-    state.encoder.add_id = 0;
-    state.encoder.zlibsettings.nicematch = 258;  // stop searching if >= this length found. Set to
-                                                 // 258 for best compression. Default: 128
+    // add Message Header to compressed image
+    auto serializedHeader = std::make_shared<rclcpp::SerializedMessage>();
+    headerSerializer.serialize_message(&imageMsg.header, serializedHeader.get());
+    auto cdrHeader = serializedHeader->get_rcl_serialized_message();
+    encoded.insert(encoded.end(), cdrHeader.buffer, cdrHeader.buffer + cdrHeader.buffer_length);
 
-    auto error = lodepng::encode(png, imageMsg.data, imageMsg.width, imageMsg.height, state);
-
-    if (error != 0) {
-        std::cout << "ImageCompression: Image not compressed, encoder error " << error << ": "
-                  << lodepng_error_text(error) << std::endl;
-        return false;
-    }
-
-    pMsg.serializedMessage->reserve(png.size());
+    pMsg.serializedMessage->reserve(encoded.size());
     auto* newCdrMsg = &pMsg.serializedMessage->get_rcl_serialized_message();
-    newCdrMsg->buffer_length = png.size();
-    std::move(png.begin(), png.end(), newCdrMsg->buffer);
+    newCdrMsg->buffer_length = encoded.size();
+    std::move(encoded.begin(), encoded.end(), newCdrMsg->buffer);
 
     return true;
 }
 
 bool ImageProcessingAction::decompress(PipelineMessage& pMsg) {
+    static rclcpp::Serialization<std_msgs::msg::Header> headerSerializer;
+
     auto cdrMsg = pMsg.serializedMessage->get_rcl_serialized_message();
 
-    // setup decoder
-    lodepng::State state;
-    state.decoder.read_text_chunks = 1;
-    state.decoder.remember_unknown_chunks = 0;
-    state.info_raw.colortype = LCT_RGB;
-    state.info_raw.bitdepth = BIT_DEPTH;
+    // split encoding, header
+    auto* iterator = std::search(cdrMsg.buffer, cdrMsg.buffer + cdrMsg.buffer_length,
+                                 std::begin(QOI_END_TAG), std::end(QOI_END_TAG));
+    uint8_t encodingId = *(iterator + QOI_END_TAG.size());
 
-    // decoding
-    std::vector<uint8_t> image;
-    unsigned width;
-    unsigned height;
+    auto cdrHeaderSize = std::distance(iterator, cdrMsg.buffer + cdrMsg.buffer_length) -
+                         QOI_END_TAG.size() - ENCODING_OFFSET;
+    rclcpp::SerializedMessage serializedHeader(cdrHeaderSize);
+    auto* cdrHeader = &serializedHeader.get_rcl_serialized_message();
+    std::memcpy(cdrHeader->buffer, iterator + QOI_END_TAG.size() + ENCODING_OFFSET, cdrHeaderSize);
+    cdrHeader->buffer_length = cdrHeaderSize;
+    std_msgs::msg::Header header;
+    headerSerializer.deserialize_message(&serializedHeader, &header);
 
-    auto error = lodepng::decode(image, width, height, state, cdrMsg.buffer, cdrMsg.buffer_length);
-
-    if (error != 0) {
-        std::cout << "ImageDecompression: Decoder error " << error << ": "
-                  << lodepng_error_text(error) << std::endl;
-        return false;
-    }
-
-    auto strings = state.info_png.text_strings;
-    auto keys = state.info_png.text_keys;
-    auto numOfTexts = state.info_png.text_num;
-    auto step = image.size() / height;
+    // decode image
+    auto image = qoixx::qoi::decode<std::vector<uint8_t>>(
+        cdrMsg.buffer, std::distance(cdrMsg.buffer, iterator) + QOI_END_TAG.size());
 
     // build ROS msg
     sensor_msgs::msg::Image imageMsg;
-
-    // Fill header
-    for (size_t i = 0; i < numOfTexts; ++i) {
-        if (std::strncmp("f", keys[i], 1) == 0) {
-            imageMsg.header.frame_id = strings[i];
-        } else if (std::strncmp("s", keys[i], 1) == 0) {
-            imageMsg.header.stamp.sec = std::stoi(strings[i]);
-        } else if (std::strncmp("n", keys[i], 1) == 0) {
-            imageMsg.header.stamp.nanosec = std::stoul(strings[i]);
-        }
-    }
-
-    imageMsg.height = height;
-    imageMsg.width = width;
-    imageMsg.encoding = ENCODING;
+    imageMsg.header = header;
+    imageMsg.height = image.second.height;
+    imageMsg.width = image.second.width;
+    imageMsg.encoding = getEncodingFromId(encodingId);
     imageMsg.is_bigendian = 0;
-    imageMsg.step = step;
-    imageMsg.data = image;
+    imageMsg.step = image.first.size() / image.second.height;
+    imageMsg.data = image.first;
 
     auto serializedMsg = std::make_shared<rclcpp::SerializedMessage>();
     static rclcpp::Serialization<sensor_msgs::msg::Image> serializer;
