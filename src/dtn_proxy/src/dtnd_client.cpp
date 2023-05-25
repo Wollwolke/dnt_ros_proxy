@@ -11,9 +11,9 @@ DtndClient::DtndClient(const conf::DtnConfig& config) : config(config) {
     endpointsToRegister.insert(
         buildEndpointId(common::REMOTE_CONFIG_ENDPOINT, ros::DtnMsgType::INTERNAL));
 
+    log = std::make_unique<Logger>("dtn");
     http = std::make_unique<httplib::Client>(config.address, config.port);
     ws = std::make_unique<WsClient>();
-    log = std::make_unique<Logger>("dtn");
 
     ws->setConnectionStatusHandler(
         std::bind(&DtndClient::onConnectionStatus, this, std::placeholders::_1));

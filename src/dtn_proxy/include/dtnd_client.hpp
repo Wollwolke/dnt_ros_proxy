@@ -31,9 +31,9 @@ private:
 
     const conf::DtnConfig config;
 
+    std::unique_ptr<Logger> log;
     std::unique_ptr<httplib::Client> http;
     std::unique_ptr<WsClient> ws;
-    std::unique_ptr<Logger> log;
 
     WsState wsStatus = WsState::NOTSET;
     std::mutex stateMutex;
