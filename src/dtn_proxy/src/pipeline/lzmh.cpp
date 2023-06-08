@@ -5,6 +5,7 @@
 
 extern "C" {
 #include "bit_file_buffer.h"
+#include "err_codes.h"
 #include "file_buffer.h"
 #include "lzmh.h"
 }
@@ -58,16 +59,23 @@ bool LzmhAction::run(PipelineMessage &pMsg, const Direction &pipelineDir) {
     InitBitFileBuffer(bbIn, fbIn);
     InitBitFileBuffer(bbOut, fbOut);
 
+    io_int_t ret;
+
     switch (pipelineDir) {
         case Direction::IN:
-            EncodeLZMH(bbIn, bbOut, &options);
+            ret = EncodeLZMH(bbIn, bbOut, &options);
             break;
         case Direction::OUT:
-            DecodeLZMH(bbIn, bbOut, &options);
+            ret = DecodeLZMH(bbIn, bbOut, &options);
             break;
         case Direction::INOUT:
         default:
             throw new std::runtime_error("Pipeline should not have Direction INOUT");
+    }
+
+    if (NO_ERROR != ret) {
+        std::cout << "LZMH En-/Decoding: 💥 Error during en-/decoding." << std::endl;
+        return false;
     }
 
     // Read modified data
@@ -83,7 +91,7 @@ bool LzmhAction::run(PipelineMessage &pMsg, const Direction &pipelineDir) {
     auto *newCdrMsg = &pMsg.serializedMessage->get_rcl_serialized_message();
     newCdrMsg->buffer_length = bytesToReserve;
 
-    auto ret = ReadBitFileBuffer(bbOut, newCdrMsg->buffer, bitsToRead);
+    ret = ReadBitFileBuffer(bbOut, newCdrMsg->buffer, bitsToRead);
 
     if (ret != bitsToRead) {
         std::cout << "LZMH En-/Decoding: 💥 Error reading modified data." << std::endl;
