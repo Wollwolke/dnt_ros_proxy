@@ -55,10 +55,11 @@ void CombineTfAction::combine(PipelineMessage& pMsg) {
     }
 
     // Append Topic Message
-    appendMessage(buffer, *pMsg.serializedMessage);
+    auto* cdrMsg = &pMsg.serializedMessage->get_rcl_serialized_message();
+    buffer.insert(buffer.end(), cdrMsg->buffer, cdrMsg->buffer + cdrMsg->buffer_length);
 
     pMsg.serializedMessage->reserve(buffer.size());
-    auto* cdrMsg = &pMsg.serializedMessage->get_rcl_serialized_message();
+    cdrMsg = &pMsg.serializedMessage->get_rcl_serialized_message();
     std::memcpy(cdrMsg->buffer, &buffer.front(), buffer.size());
     cdrMsg->buffer_length = buffer.size();
 }
@@ -69,36 +70,31 @@ void CombineTfAction::split(PipelineMessage& pMsg) {
     uint32_t msgLength;
     const auto SIZE_OF_LEN = sizeof(msgLength);
     size_t offset = 0;
-    std::vector<uint8_t> buffer;
 
-    for (size_t i = 0; i < 2; ++i) {
-        std::memcpy(&msgLength, cdrMsg.buffer + offset, SIZE_OF_LEN);
-        offset += SIZE_OF_LEN;
-        msgLength = ntohl(msgLength);
+    // get TF Message length
+    std::memcpy(&msgLength, cdrMsg.buffer + offset, SIZE_OF_LEN);
+    msgLength = ntohl(msgLength);
+    offset += SIZE_OF_LEN;
 
-        if (0 != msgLength) {
-            // send TF Message
-            buffer.assign(cdrMsg.buffer + offset, cdrMsg.buffer + offset + msgLength);
-            offset += msgLength;
+    if (0 != msgLength) {
+        // send TF Message
+        rclcpp::SerializedMessage serializedTf(msgLength);
+        auto* newMsg = &serializedTf.get_rcl_serialized_message();
+        newMsg->buffer_length = msgLength;
+        std::memcpy(newMsg->buffer, cdrMsg.buffer + offset, msgLength);
+        geometry_msgs::msg::TransformStamped transform;
+        tfSerialization.deserialize_message(&serializedTf, &transform);
+        tfBroadcaster->sendTransform(transform);
 
-            if (i == 0) {
-                // send TF Message
-                rclcpp::SerializedMessage serializedTf(buffer.size());
-                auto* newMsg = &serializedTf.get_rcl_serialized_message();
-                std::memcpy(newMsg->buffer, &buffer.front(), buffer.size());
-                newMsg->buffer_length = buffer.size();
-                geometry_msgs::msg::TransformStamped transform;
-                tfSerialization.deserialize_message(&serializedTf, &transform);
-                tfBroadcaster->sendTransform(transform);
-            } else {
-                // forward Topic Message
-                pMsg.serializedMessage->reserve(buffer.size());
-                auto* newCdrMsg = &pMsg.serializedMessage->get_rcl_serialized_message();
-                newCdrMsg->buffer_length = buffer.size();
-                std::memcpy(newCdrMsg->buffer, &buffer.front(), buffer.size());
-            }
-        }
+        offset += msgLength;
     }
+
+    // forward Topic Message
+    msgLength = cdrMsg.buffer_length - offset;
+    pMsg.serializedMessage->reserve(msgLength);
+    auto* newCdrMsg = &pMsg.serializedMessage->get_rcl_serialized_message();
+    newCdrMsg->buffer_length = msgLength;
+    std::memcpy(newCdrMsg->buffer, cdrMsg.buffer + offset, msgLength);
 }
 
 CombineTfAction::CombineTfAction(std::vector<std::string> params, rclcpp::Node& nodeHandle) {
