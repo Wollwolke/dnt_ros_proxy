@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -52,15 +53,20 @@ void TopicManager::dtnMsgCallback(const std::string& topic,
     auto prefixedTopic = prefixTopic(topic, src, false);
     pipeline::PipelineMessage pMsg{std::move(msg)};
     // run optimization pipeline before sending ROS msgs
-    if (skipPipeline || publisher.at(prefixedTopic).second.run(pMsg)) {
-        publisher.at(prefixedTopic).first->publish(*pMsg.serializedMessage);
+    try {
+        if (skipPipeline || publisher.at(prefixedTopic).second.run(pMsg)) {
+            publisher.at(prefixedTopic).first->publish(*pMsg.serializedMessage);
 
-        // TODO: find msgType in rosConfig
-        if (stats) {
-            auto hash = CdrMsgHash{}(pMsg.serializedMessage->get_rcl_serialized_message());
-            stats->rosSent(prefixedTopic, "unknown", getRosMsgSize(pMsg.serializedMessage),
-                           DtnMsgType::TOPIC, hash);
+            // TODO: find msgType in rosConfig
+            if (stats) {
+                auto hash = CdrMsgHash{}(pMsg.serializedMessage->get_rcl_serialized_message());
+                stats->rosSent(prefixedTopic, "unknown", getRosMsgSize(pMsg.serializedMessage),
+                               DtnMsgType::TOPIC, hash);
+            }
         }
+    } catch (const std::out_of_range& ex) {
+        log->WARN() << "Ignoring message for topic " << prefixedTopic
+                    << " which is not configured!";
     }
 }
 

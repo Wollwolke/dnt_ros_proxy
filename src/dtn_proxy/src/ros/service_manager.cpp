@@ -89,11 +89,14 @@ void ServiceManager::onDtnRequest(const std::string& topic, std::vector<uint8_t>
     };
 
     using namespace std::chrono_literals;
-    while (!clients.at(topic)->wait_for_service(5s)) {
-        log->INFO() << "Service " << topic << " not available, waiting...";
+    try {
+        while (!clients.at(topic)->wait_for_service(5s)) {
+            log->INFO() << "Service " << topic << " not available, waiting...";
+        }
+        clients.at(topic)->async_send_request(sharedRequest, responseReceivedCallback);
+    } catch (const std::out_of_range& ex) {
+        log->WARN() << "Ignoring message for service " << topic << " which is not configured!";
     }
-
-    clients.at(topic)->async_send_request(sharedRequest, responseReceivedCallback);
 
     // TODO: find msgType in rosConfig
     if (stats) {
