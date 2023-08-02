@@ -21,7 +21,7 @@ private:
     static constexpr auto ENCODING_OFFSET = 1;
 
     const uint SEQUENCE_NR_IN = 80;
-    const uint SEQUENCE_NR_OUT = 10;
+    const uint SEQUENCE_NR_OUT = 15;
     const Direction dir = Direction::INOUT;
 
     const std::map<std::string, uint8_t> encodingMap = {

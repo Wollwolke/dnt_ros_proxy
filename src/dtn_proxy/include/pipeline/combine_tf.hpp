@@ -19,9 +19,8 @@ namespace dtnproxy::pipeline {
 
 class CombineTfAction : public IAction {
 private:
-    // TODO: figure out the correct sequence for all modules
     const uint SEQUENCE_NR_IN = 85;
-    const uint SEQUENCE_NR_OUT = 5;
+    const uint SEQUENCE_NR_OUT = 10;
     const Direction dir = Direction::INOUT;
 
     std::string sourceFrame;

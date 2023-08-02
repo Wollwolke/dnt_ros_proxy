@@ -14,8 +14,6 @@ enum Module {
     COMBINE_TF,
 };
 
-// TODO: fix order
-
 const std::map<std::string, Module> moduleMapping{
     {"RateLimit", Module::RATE_LIMIT},       {"Compress", Module::COMPRESS},
     {"ImageCompress", Module::IMG_COMPRESS}, {"Expire", Module::EXPIRE},

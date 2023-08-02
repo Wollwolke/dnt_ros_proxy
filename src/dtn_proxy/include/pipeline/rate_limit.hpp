@@ -9,7 +9,7 @@ namespace dtnproxy::pipeline {
 
 class RateLimitAction : public IAction {
 private:
-    const uint SEQUENCE_NR_IN = 99;
+    const uint SEQUENCE_NR_IN = 1;
     const int MS_IN_SECOND = 1000;
     unsigned int deltaT = 0;
     const Direction dir = Direction::IN;

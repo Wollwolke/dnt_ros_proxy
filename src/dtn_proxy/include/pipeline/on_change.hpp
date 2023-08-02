@@ -20,7 +20,7 @@ private:
     //           v       v v       v v       v v       v
     // 00000000: 0001 0000 2550 3d64 38f2 3b34 0500 0000
 
-    const uint SEQUENCE_NR_IN = 2;
+    const uint SEQUENCE_NR_IN = 5;
     const Direction dir = Direction::IN;
 
     bool active = true;

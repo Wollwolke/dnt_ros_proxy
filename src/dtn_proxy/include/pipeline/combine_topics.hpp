@@ -18,9 +18,8 @@ private:
     using injectMsgCb_t = std::function<void(const std::string& topic,
                                              std::shared_ptr<rclcpp::SerializedMessage> msg)>;
 
-    // TODO: figure out the correct sequence for all modules
     const uint SEQUENCE_NR_IN = 95;
-    const uint SEQUENCE_NR_OUT = 2;
+    const uint SEQUENCE_NR_OUT = 5;
     const Direction dir = Direction::INOUT;
 
     const std::vector<std::string> topics;
