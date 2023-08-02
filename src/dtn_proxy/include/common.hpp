@@ -6,6 +6,7 @@ constexpr auto PACKAGE_NAME = "dtn_proxy";
 constexpr auto DEFAULT_NODE_NAME = "dtnproxy";
 
 constexpr auto REMOTE_CONFIG_ENDPOINT = "remoteConfig";
+constexpr auto REMOTE_CONFIG_LIFETIME = 24 * 60 * 60;
 
 namespace dtnPrefixes {
 constexpr auto TOPIC = "rt_";

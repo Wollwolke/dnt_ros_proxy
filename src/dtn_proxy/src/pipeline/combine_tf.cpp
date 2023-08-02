@@ -99,7 +99,7 @@ void CombineTfAction::split(PipelineMessage& pMsg) {
 
 CombineTfAction::CombineTfAction(std::vector<std::string> params, rclcpp::Node& nodeHandle) {
     if (params.size() != 2) {
-        std::cout << "CombineTF: Exactly two parameters required - sourceFrameId, targetFrameId"
+        std::cout << "CombineTF: 💥 Exactly two parameters required - sourceFrameId, targetFrameId"
                   << std::endl;
     } else {
         sourceFrame = params[0];

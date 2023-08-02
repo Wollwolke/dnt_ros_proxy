@@ -195,10 +195,10 @@ void DtndClient::sendRemoteConfig(std::vector<uint8_t> config) {
         latestRemoteConfig = std::move(config);
     }
 
-    // TODO: find appropriate lifetime
     if (!latestRemoteConfig.empty()) {
         Message msg = {latestRemoteConfig, common::REMOTE_CONFIG_ENDPOINT,
-                       ros::DtnMsgType::INTERNAL, BundleFlags::BUNDLE_REMOVE_OLDER_BUNDLES, 99999};
+                       ros::DtnMsgType::INTERNAL, BundleFlags::BUNDLE_REMOVE_OLDER_BUNDLES,
+                       common::REMOTE_CONFIG_LIFETIME};
         sendMessage(msg);
     }
 }

@@ -163,7 +163,6 @@ void RosConfig::RosTopic::from_toml(const toml::value& v) {
     try {
         auto tmp = toml::get<std::vector<std::string>>(v);
         if (tmp.size() < 2) {
-            // TODO: Fix exception msg
             throw ConfigException("Malformed Config in [ros]");
         }
         this->name = tmp[0];
