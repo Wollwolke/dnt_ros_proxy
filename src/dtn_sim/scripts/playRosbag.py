@@ -63,6 +63,15 @@ class TimelyRosbagPlayer(Node):
 
                 pub = self.get_pub(topic, msg_type)
 
+                # sleep until message has to be sent
+                self.get_clock().sleep_until(
+                    Time(
+                        nanoseconds=timestamp + timeDiff,
+                        clock_type=ClockType.ROS_TIME,
+                    ),
+                    context=self.context,
+                )
+
                 if not isinstance(msg, tf2_msgs.msg._tf_message.TFMessage):
                     # non tf msgs
                     try:
@@ -75,15 +84,6 @@ class TimelyRosbagPlayer(Node):
                 else:
                     # tf msgs, have a different time reference?
                     pass
-
-                # sleep until message has to be sent
-                self.get_clock().sleep_until(
-                    Time(
-                        nanoseconds=timestamp + timeDiff,
-                        clock_type=ClockType.ROS_TIME,
-                    ),
-                    context=self.context,
-                )
 
                 if not rclpy.ok():
                     return
