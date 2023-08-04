@@ -1,6 +1,7 @@
 # dtn_sim
 
-This package contains all necessary files for the gazebo simulation to generate a ROS data set.
+This package contains all necessary files for the gazebo simulation to generate a ROS data set.  
+Additional scripts are used for the evaluation of the `dtn_proxy`.
 
 Contents:
 
@@ -20,3 +21,22 @@ Contents:
   - [sendWaypoints.py](scripts/sendWaypoints.py): Sends waypoints created with `parseMap.py` to the `follow_waypoints` service of the `control_interface` node
 - [urdf/](urdf/): URDF files for the robot
 - [worlds/](worlds/): virtual worlds for gazebo
+
+## Setup
+
+Dependencies required to run the simulation:  
+
+- Install gazebo
+  - `sudo apt install ros-humble-gazebo-ros ros-humble-gazebo-plugins`
+- Install Turtlebot3 dependencies
+  - `sudo apt install ros-humble-turtlebot3 ros-humble-turtlebot3-msgs`
+
+Dependencies for `playRosbag.py`:
+
+- Install Rosbag2 mcap plugin
+  - `sudo apt install ros-humble-rosbag2-storage-mcap`
+
+## Usage
+
+- Select the TurtleBot model at the top of the [launch file](launch/complete.launch.py)
+- Run the simulation: `ros2 launch dtn_sim complete.launch.py`
