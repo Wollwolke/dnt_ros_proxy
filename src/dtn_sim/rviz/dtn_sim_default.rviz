@@ -80,7 +80,7 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz_default_plugins/RobotModel
       Collision Enabled: false
-      Description File: /home/lars/Documents/mt/ros_ws/src/dtn_sim/urdf/turtlebot3_pi_dtn.urdf
+      Description File: urdf/turtlebot3_pi_dtn.urdf
       Description Source: File
       Description Topic:
         Depth: 5
